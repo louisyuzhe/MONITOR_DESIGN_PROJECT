@@ -1,0 +1,61 @@
+00002000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.15.04
+Created On: 11/23/2018 5:48:52 PM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000                             8  **Convert HEX in (D1) to ASCII starting at A1 - (# of digits * BYTE)
+00001000                             9  HEXtoASCII: 
+00001000  48E7 1800                 10            MOVEM.L D3/D4,-(A7) ; Save registers
+00001004  2801                      11            MOVE.L  D1,D4       ; Save D1 to D4
+00001006  2604                      12  HEXtoA2   MOVE.L  D4, D3      ; Duplicate value of D4
+00001008  C6BC 0000000F             13            AND.L   #$0F,D3     ; Filter all except last digit
+0000100E  0C03 000A                 14            CMPI.B  #$A,D3      ; Determine Alphabet/Digit
+00001012  6D00 000A                 15            BLT     DIGITtoA    ; Branch to subroutine DIGITtoA  
+00001016  0603 0037                 16  ALPHAtoA  ADDI.B  #$37, D3    ; Convert Alphabets in (D3) to ASCII for A to F
+0000101A  6000 0006                 17            BRA     HEXtoA3   
+0000101E  0603 0030                 18  DIGITtoA  ADDI.B #$30,D3       ; Convert Digit in (D3) to ASCII for 0 to 9                  
+00001022  1303                      19  HEXtoA3   MOVE.B  D3,-(A1)    ; Save ASCII to memory
+00001024  E88C                      20            LSR.L   #4,D4       ; Shift right by 1 Hex digit
+00001026  4A84                      21            TST.L   D4          ; Test value in D4
+00001028  66DC                      22            BNE     HEXtoA2   ; Loop if there is digit left
+0000102A  4CDF 0018                 23  H2A_END   MOVEM.L (A7)+,D3/D4 ; Restore registers
+0000102E  4E75                      24            RTS                 ; Return from Subroutine
+00001030                            25  
+00002000                            26        ORG    $2000
+00002000                            27  START:                  ; first instruction of program
+00002000  =00000050                 28  MAX_IN_LEN  EQU 80  ; to ensure input won't overflow stack
+00002000  =00002FFC                 29  STACK       EQU $2FFC   ; $3000 minus a long word because A7 will be stored first
+00002000  21CF 2FFC                 30          MOVE.L  A7,STACK    ; store original location of stack beforehand
+00002004  4FF8 2FFC                 31          LEA     STACK,A7
+00002008  48E7 FFFE                 32          MOVEM.L D0-D7/A0-A6,-(A7)   ; store all registers in stack. Want to be able to restore them
+0000200C                            33      
+0000200C  227C 00004000             34      MOVE.L  #$4000,A1
+00002012                            35  ;    MOVE.L  #$123456, D1
+00002012  6000 EFEC                 36      BRA HEXtoASCII
+00002016                            37  
+00002016                            38  
+00002016                            39  * Put variables and constants here
+00002016                            40      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+ALPHATOA            1016
+DIGITTOA            101E
+H2A_END             102A
+HEXTOA2             1006
+HEXTOA3             1022
+HEXTOASCII          1000
+MAX_IN_LEN          50
+STACK               2FFC
+START               2000

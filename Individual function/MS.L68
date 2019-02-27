@@ -1,0 +1,244 @@
+00002000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.15.04
+Created On: 11/26/2018 11:53:38 AM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000                             8  
+00001000= 49 6E 76 61 6C 69 ...      9  INVALID_COM DC.B    'Invalid command',0 ; Imply user command has no match 
+00001010                            10  USER_INPUT  DS.B    80                    ; User input spaces size residing in memory
+00001060= 00                        11  END_USER_INPUT DC.B 0
+00001061                            12       
+00001100                            13      ORG $1100
+00001100                            14  ***ASCII to HEX***
+00001100                            15  *Convert ASCII in (A4) to HEX in (D1)
+00001100                            16  ASCIItoHEX:
+00001100  48E7 1000                 17          MOVEM.L D3,-(A7)     ; Save register
+00001104  4281                      18          CLR.L   D1           ; Clear register
+00001106  4283                      19          CLR.L   D3
+00001108  161C                      20          MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+0000110A  0C03 0030                 21          CMPI.B  #$30,D3      ; Check if it is ASCII
+0000110E  6D00 0016                 22          BLT     A2H_END      ; Done if there isn't ASCII
+00001112  6100 0050                 23  AtoHEX2 BSR     ALPHAorDIGIT ; Determine alpha/digit
+00001116  D203                      24  AtoHEX3 ADD.B   D3,D1        ; Store converted HEX in D1
+00001118  161C                      25          MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+0000111A  0C03 0030                 26          CMPI.B  #$30,D3      ; Check if it is ASCII
+0000111E  6D00 0006                 27          BLT     A2H_END      ; Done if there isn't ASCII
+00001122  E981                      28          ASL.L   #4,D1        ; Shift left to store more HEX
+00001124  60EC                      29          BRA     AtoHEX2      ; LOOP the conversion
+00001126  538C                      30  A2H_END SUBA.L  #1,A4        ; leave A6 pointing at byte immediately after last number
+00001128  4CDF 0008                 31          MOVEM.L (A7)+,D3     ; restore registers
+0000112C  4E75                      32          RTS
+0000112E                            33   
+0000112E                            34  *Convert ASCII in (A4) to HEX in (D1) for MM, ends when detected ';'
+0000112E                            35  ASCIItoHEX_MM:
+0000112E  48E7 1000                 36             MOVEM.L D3,-(A7)     ; Save register
+00001132  4281                      37             CLR.L   D1           ; Clear register
+00001134  4283                      38             CLR.L   D3
+00001136  161C                      39             MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+00001138  0C03 0030                 40             CMPI.B  #$30,D3      ; Check if it is ASCII
+0000113C  6D00 001E                 41             BLT     A2H_END_MM   ; Done if there isn't ASCII
+00001140  6100 0022                 42  AtoHEX2_MM BSR     ALPHAorDIGIT ; Determine alpha/digit
+00001144  D203                      43  AtoHEX3_MM ADD.B   D3,D1        ; Store converted HEX in D1
+00001146  161C                      44             MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+00001148  0C03 003B                 45             CMPI.B  #';',D3      ; Check if it is ';'
+0000114C  6700 000E                 46             BEQ     A2H_END_MM   ; Done if it meets ';'
+00001150  0C03 0030                 47             CMPI.B  #$30,D3      ; Check if it is ASCII
+00001154  6D00 0006                 48             BLT     A2H_END_MM   ; Done if there isn't ASCII
+00001158  E981                      49             ASL.L   #4,D1        ; Shift left to store more HEX
+0000115A  60E4                      50             BRA     AtoHEX2_MM   ; LOOP the conversion
+0000115C  538C                      51  A2H_END_MM SUBA.L  #1,A4        ; leave A6 pointing at byte immediately after last number
+0000115E  4CDF 0008                 52             MOVEM.L (A7)+,D3     ; restore registers
+00001162  4E75                      53             RTS
+00001164                            54         
+00001164                            55  ALPHAorDIGIT:
+00001164  0C03 0040                 56          CMPI.B  #$40,D3      ; Determine alpha/digit
+00001168  6D00 0004                 57          BLT     AtoDIGIT     ; Branch to subroutine AtoDIGIT        
+0000116C                            58  *Convert ASCII (D3) to Alphabets
+0000116C  5F03                      59  AtoALPHA SUBI.B #$7, D3 ; for A to F
+0000116E                            60  *Convert ASCII (D3) to digits
+0000116E  0403 0030                 61  AtoDIGIT SUBI.B #$30,D3 ; for 0 to 9
+00001172  4E75                      62           RTS
+00001174                            63  
+00001174                            64  ***HEX to ASCII***
+00001174                            65  *Convert HEX in (D1) to ASCII starting at A1 - (# of digits * BYTE)
+00001174                            66  HEXtoASCII: 
+00001174  48E7 1800                 67            MOVEM.L D3/D4,-(A7) ; Save registers
+00001178  2801                      68            MOVE.L  D1, D4      ; Save D1 to D4
+0000117A  2604                      69  HEXtoA2   MOVE.L  D4, D3      ; Duplicate value of D4
+0000117C  C6BC 0000000F             70            AND.L   #$0F,D3     ; Filter all except last digit
+00001182  0C03 000A                 71            CMPI.B  #$A,D3      ; Determine Alphabet/Digit
+00001186  6D00 000A                 72            BLT     DIGITtoA    ; Branch to subroutine DIGITtoA  
+0000118A  0603 0037                 73  ALPHAtoA  ADDI.B  #$37, D3    ; Convert Alphabets in (D3) to ASCII for A to F
+0000118E  6000 0006                 74            BRA     HEXtoA3     ; Continue to save value to -A1
+00001192  0603 0030                 75  DIGITtoA  ADDI.B  #$30,D3     ; Convert Digit in (D3) to ASCII for 0 to 9                  
+00001196  1303                      76  HEXtoA3   MOVE.B  D3,-(A1)    ; Save ASCII to memory
+00001198  E88C                      77            LSR.L   #4,D4       ; Shift right by 1 Hex digit
+0000119A  4A84                      78            TST.L   D4          ; Test value in D4
+0000119C  66DC                      79            BNE     HEXtoA2     ; Loop if there is digit left
+0000119E  4CDF 0018                 80  H2A_END   MOVEM.L (A7)+,D3/D4 ; Restore registers
+000011A2  4E75                      81            RTS                 ; Return from Subroutine
+000011A4                            82            
+000011A4                            83  **Convert 8 HEX characters in (D1) to ASCII starting at A1 - (8 BYTE)
+000011A4                            84  *For the 16 registers (A, D), SSW, BA, IR
+000011A4                            85  HEX8toASCII: 
+000011A4  48E7 3800                 86            MOVEM.L D2-D4,-(A7) ; Save registers
+000011A8  2801                      87            MOVE.L  D1,D4       ; Save D1 to D4
+000011AA  7408                      88            MOVE.L  #8,D2       ; Count of 8
+000011AC  2604                      89  HEX8toA2  MOVE.L  D4, D3      ; Duplicate value of D4
+000011AE  C6BC 0000000F             90            AND.L   #$0F,D3     ; Filter all except last digit
+000011B4  0C03 000A                 91            CMPI.B  #$A,D3      ; Determine Alphabet/Digit
+000011B8  6D00 000A                 92            BLT     DIGIT8toA   ; Branch to subroutine DIGITtoA  
+000011BC  0603 0037                 93  ALPHA8toA ADDI.B  #$37, D3    ; Convert Alphabets in (D3) to ASCII for A to F
+000011C0  6000 0006                 94            BRA     HEX8toA3    ; Continue to save value to -A1
+000011C4  0603 0030                 95  DIGIT8toA ADDI.B #$30,D3      ; Convert Digit in (D3) to ASCII for 0 to 9    
+000011C8  1303                      96  HEX8toA3  MOVE.B  D3,-(A1)    ; Save ASCII to memory
+000011CA  E88C                      97            LSR.L   #4,D4       ; Shift right by 1 Hex digit
+000011CC  5382                      98            SUBI.L  #1, D2      ; Decerement D2    
+000011CE  66DC                      99            BNE     HEX8toA2    ; Loop if there is digit left
+000011D0  4CDF 001C                100  H82A_END  MOVEM.L (A7)+,D2-D4 ; Restore registers
+000011D4  4E75                     101            RTS                 ; Return from Subroutine 
+000011D6                           102            
+000011D6                           103  *------------------------------------ Main Program ------------------------------          
+000011D6                           104  ***Memory Set***        
+000011D6                           105  *MS -  alters memory by setting data into the address specified
+000011D6                           106  * Data can take the form of ASCII string or hexadecimal data. 
+000011D6                           107  * Input> long, only last long size data will be stored 
+000011D6                           108   
+000011D6                           109  MS:
+000011D6  48E7 4004                110          MOVEM.L D1/A5,-(A7)
+000011DA                           111          
+000011DA                           112          *Store address at A5
+000011DA  538C                     113          SUBA.L  #1, A4      ; Point to first byte of user input address 
+000011DC  2A4C                     114          MOVEA.L A4,A5       ; A1 points to User Input for Writing
+000011DE  121C                     115          MOVE.B  (A4)+,D1    ; First byte data from user input(A4 pointer)
+000011E0  0C01 0024                116          CMPI.B  #$24,D1     ; #$24 is '$', test if user input a valid address sign
+000011E4  6600 005A                117          BNE     ERR_MS      ; INVALID Address for MS
+000011E8  6100 FF16                118          BSR     ASCIItoHEX  ; D1 has 1st address(ASCII) 
+000011EC  2A41                     119          MOVEA.L D1, A5      ; 1st HEX addr in A5 
+000011EE  121C                     120          MOVE.B  (A4)+,D1    ; Store the next byte in D1 to check blank space
+000011F0  0C01 0020                121          CMPI.B  #$20,D1     ; Check if user input blank space before data
+000011F4  6600 004A                122          BNE     ERR_MS      ; INVALID Command format for MS 
+000011F8                           123          
+000011F8                           124          *Determine if it is empty, ASCII or HEX
+000011F8  121C                     125  CHK_MS  MOVE.B  (A4)+,D1    ; Store the next byte in D1 to check HEX sign
+000011FA  0C01 0000                126          CMPI.B  #$00,D1     ; Check if nothing is input
+000011FE  6700 0046                127          BEQ     END_MS      ; If yes, Run MS as HEX
+00001202  0C01 0024                128          CMPI.B  #$24,D1     ; #$24 is '$', test if user input hex value
+00001206  6700 0010                129          BEQ     HEX_MS      ; If yes, Run MS as HEX
+0000120A  538C                     130          SUBA.L  #1,A4       ; Else, point to the beginning of string
+0000120C                           131  
+0000120C  1ADC                     132  ASC_MS  MOVE.B  (A4)+,(A5)+ ; Store one byte of data from input to memory
+0000120E  0C14 0000                133          CMPI.B  #0,(A4)     ; check if end and increment A4 to match A5
+00001212  6700 0032                134          BEQ     END_MS      ; If yes, end the memory setting
+00001216  60F4                     135          BRA     ASC_MS      ; Else, keep looping
+00001218                           136          
+00001218  6100 FEE6                137  HEX_MS  BSR     ASCIItoHEX  ; D1 has input value (HEX)
+0000121C  0C81 0000FFFF            138          CMPI.L  #$FFFF,D1   ; D1 - $FFFF
+00001222  6200 0016                139          BHI     LONG_MS     ; If ans > 0, its a long
+00001226  0C81 000000FF            140          CMPI.L  #$FF,D1     ; Else, try D1 - $FFFF
+0000122C  6200 0006                141          BHI     WORD_MS     ; If ans > 0, its a word
+00001230                           142  
+00001230                           143  *Store byte size data into (A5)        
+00001230  1A81                     144  BYTE_MS MOVE.B  D1,(A5)    ; Store a byte value
+00001232  60C4                     145          BRA     CHK_MS      ; End memory setting  
+00001234                           146  
+00001234                           147  *Store word size data into (A5) 
+00001234  548D                     148  WORD_MS ADDA.L  #2,A5       ; Skips a word size to save a word data
+00001236  3B01                     149          MOVE.W  D1,-(A5)    ; Store a word value
+00001238  60BE                     150          BRA     CHK_MS      ; End memory setting  
+0000123A                           151  
+0000123A                           152  *Store long size data into (A5) 
+0000123A  588D                     153  LONG_MS ADDA.L  #4,A5       ; Skips a long size to save a long data
+0000123C  2B01                     154          MOVE.L  D1,-(A5)    ; Store a long value
+0000123E  60B8                     155          BRA     CHK_MS      ; End memory setting  
+00001240                           156  
+00001240  4EB9 0000124C            157  ERR_MS  JSR    CMD_INVALID  ; Go to invalid command subroutine
+00001246  4CDF 2002                158  END_MS  MOVEM.L (A7)+,D1/A5 ; Restore REGs
+0000124A  4E75                     159          RTS      
+0000124C                           160  
+0000124C                           161  
+0000124C                           162  *-----------------------------------Default----------------------------------       
+0000124C                           163  *Prompt user when command is invalid
+0000124C                           164  CMD_INVALID:
+0000124C  48E7 8040                165         MOVEM.L D0/A1, -(A7)    ; Save REGs
+00001250  43F8 1000                166         LEA     INVALID_COM, A1 ; Display error message
+00001254  103C 000D                167         MOVE.B  #13,D0
+00001258  4E4F                     168         TRAP    #15
+0000125A  4CDF 0201                169         MOVEM.L (A7)+,D0/A1     ; Restore REGs
+0000125E  4E75                     170         RTS
+00001260                           171       
+00001260                           172  * Put variables and constants here
+00002300                           173      ORG    $2300
+00002300                           174  ;TEST1 DC.B    '$2400 ABCDEF',0 ; Store testcase in input space;
+00002300= 24 32 34 30 30 20 ...    175  TEST1 DC.B    '$2400 HELLO WORLD',0 ; Store testcase in input space;
+00002312                           176  ;TEST1 DC.B    '$2400 $12',0 ; Test Hex byte
+00002312                           177  ;TEST1 DC.B    '$2400 $1234',0 ;  Test Hex word
+00002312                           178  ;TEST1 DC.B    '$2400 $12345678',0 ;  Test Hex long
+00002312                           179  ;TEST1 DC.B    '$2400 $1234567891',0 ;  Test more than hex long (long + byte)
+00002312                           180  
+00002312  =00002FFC                181  STACK   EQU $2FFC       ; A7 will be stored at $3000 - $4
+00002312                           182  
+00002400                           183      ORG $2400
+00002400= 30 35 30 31 30 34 ...    184  TEST1A   DC.B    '0501040203',0
+0000240B                           185  
+00002000                           186      ORG $2000
+00002000                           187  START:                  ; first instruction of program
+00002000  287C 00002301            188      MOVEA.L #$2301, A4
+00002006  6000 F1CE                189      BRA     MS 
+0000200A                           190      ;MOVEA.L #$2601, A4
+0000200A                           191      ;BRA     MDSP   
+0000200A                           192      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+A2H_END             1126
+A2H_END_MM          115C
+ALPHA8TOA           11BC
+ALPHAORDIGIT        1164
+ALPHATOA            118A
+ASCIITOHEX          1100
+ASCIITOHEX_MM       112E
+ASC_MS              120C
+ATOALPHA            116C
+ATODIGIT            116E
+ATOHEX2             1112
+ATOHEX2_MM          1140
+ATOHEX3             1116
+ATOHEX3_MM          1144
+BYTE_MS             1230
+CHK_MS              11F8
+CMD_INVALID         124C
+DIGIT8TOA           11C4
+DIGITTOA            1192
+END_MS              1246
+END_USER_INPUT      1060
+ERR_MS              1240
+H2A_END             119E
+H82A_END            11D0
+HEX8TOA2            11AC
+HEX8TOA3            11C8
+HEX8TOASCII         11A4
+HEXTOA2             117A
+HEXTOA3             1196
+HEXTOASCII          1174
+HEX_MS              1218
+INVALID_COM         1000
+LONG_MS             123A
+MS                  11D6
+STACK               2FFC
+START               2000
+TEST1               2300
+TEST1A              2400
+USER_INPUT          1010
+WORD_MS             1234

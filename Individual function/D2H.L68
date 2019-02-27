@@ -1,0 +1,160 @@
+00001010 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.15.04
+Created On: 11/30/2018 10:06:21 AM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001100                             7   ORG $1100
+00001100                             8  **Convert HEX in (D1) to ASCII starting at A1 - (# of digits * BYTE)
+00001100                             9  HEXtoASCII: 
+00001100  48E7 1800                 10            MOVEM.L D3/D4,-(A7) ; Save registers
+00001104  2801                      11            MOVE.L  D1,D4       ; Save D1 to D4
+00001106  2604                      12  HEXtoA2   MOVE.L  D4, D3      ; Duplicate value of D4
+00001108  C6BC 0000000F             13            AND.L   #$0F,D3     ; Filter all except last digit
+0000110E  0C03 000A                 14            CMPI.B  #$A,D3      ; Determine Alphabet/Digit
+00001112  6D00 000A                 15            BLT     DIGITtoA    ; Branch to subroutine DIGITtoA  
+00001116  0603 0037                 16  ALPHAtoA  ADDI.B  #$37, D3    ; Convert Alphabets in (D3) to ASCII for A to F
+0000111A  6000 0006                 17            BRA     HEXtoA3     ; Continue to save value to -A1
+0000111E  0603 0030                 18  DIGITtoA  ADDI.B #$30,D3      ; Convert Digit in (D3) to ASCII for 0 to 9                  
+00001122  1303                      19  HEXtoA3   MOVE.B  D3,-(A1)    ; Save ASCII to memory
+00001124  E88C                      20            LSR.L   #4,D4       ; Shift right by 1 Hex digit
+00001126  4A84                      21            TST.L   D4          ; Test value in D4
+00001128  66DC                      22            BNE     HEXtoA2     ; Loop if there is digit left
+0000112A  4CDF 0018                 23  H2A_END   MOVEM.L (A7)+,D3/D4 ; Restore registers
+0000112E  4E75                      24            RTS                 ; Return from Subroutine
+00001130                            25      
+00001130                            26  ***3 Decimal to Hexadecimal***
+00001130                            27  *D2H - Convert up to 3 digits decimal number into hexadecimal number
+00001130                            28  *E.G: D2H 123 , number limit is 255
+00001130= 54 68 65 20 48 45 ...     29  D2H_MSG DC.B    'The HEXADECIMAL = 000'
+00001145= 00                        30  END_D2H_MSG DC.B '',0   
+00001146                            31    
+00001146                            32  D2H:
+00001146  48E7 3C40                 33      MOVEM.L  D2-D5/A1,-(A7) ; Save registers
+0000114A  538C                      34      SUBA.L  #1, A4          ; Point to first byte of user input address 
+0000114C  4281                      35      CLR.L   D1              ; To be used for storing data 
+0000114E  4283                      36      CLR.L   D3              ; Empty D3 incase of 0 value
+00001150  4284                      37      CLR.L   D4              ; Empty D4 incase of less than 3 digits 
+00001152  4285                      38      CLR.L   D5              ; Empty D5 incase of less than 3 digits
+00001154                            39      
+00001154                            40      *Check 1st number
+00001154  121C                      41      MOVE.B  (A4)+,D1    ; First byte data from user input(A4 pointer)
+00001156  0C01 0000                 42      CMPI.B  #$00,D1     ; #$00 Check if there's a number
+0000115A  6700 009A                 43      BEQ     ERR_D2H     ; Invalid data to be convert
+0000115E  2601                      44      MOVE.L  D1,D3       ; 1st number in D3 (ASCII)
+00001160  0403 0030                 45      SUBI.B  #$30,D3     ; 1st number in D3 (DEC)
+00001164                            46      
+00001164                            47      *Check 2nd number
+00001164  121C                      48      MOVE.B  (A4)+,D1    ; Second byte data from user input(A4 pointer)
+00001166  0C01 0000                 49      CMPI.B  #$00,D1     ; #$00  Check if there's a number
+0000116A  6700 0026                 50      BEQ     ONE_D2H     ; If no, go to one digits decimal function
+0000116E  2801                      51      MOVE.L  D1,D4       ; 2nd number in D4 (ASCII)
+00001170  0404 0030                 52      SUBI.B  #$30,D4     ; 2nd number in D4 (DEC)
+00001174                            53  
+00001174                            54      *Check 3rd number
+00001174  121C                      55      MOVE.B  (A4)+,D1    ; First byte data from user input(A4 pointer)
+00001176  0C01 0000                 56      CMPI.B  #$00,D1     ; #$00  Check if there's a number
+0000117A  6700 001E                 57      BEQ     TWO_D2H     ; If no, go to two digits decimal function
+0000117E  141C                      58      MOVE.B  (A4)+,D2    ; Check if it's only 3 digits
+00001180  0C02 0000                 59      CMPI.B  #$00,D2     ; 
+00001184  6600 0070                 60      BNE     ERR_D2H     ; If not, return error
+00001188  2A01                      61      MOVE.L  D1,D5       ; 3rd number in D5 (ASCII)
+0000118A  0405 0030                 62      SUBI.B  #$30,D5     ; 3rd number in D5 (DEC)
+0000118E  6000 0014                 63      BRA     D2H2
+00001192                            64  
+00001192  2A03                      65  ONE_D2H MOVE.L  D3,D5   ; Place the only digit at 1's
+00001194  4283                      66          CLR.L D3        ; Empty D3 because only 1 digit
+00001196  6000 000C                 67          BRA     D2H2    ; Go to Dec to Hex conversion
+0000119A                            68  
+0000119A  2A04                      69  TWO_D2H MOVE.L  D4,D5   ; Place the 2nd digit at 1's
+0000119C  2803                      70          MOVE.L  D3,D4   ; Place the 1st digit at 10's
+0000119E  4283                      71          CLR.L D3        ; Empty D3 because only 1 digit
+000011A0  6000 0002                 72          BRA     D2H2    ; Go to Dec to Hex conversion
+000011A4                            73  
+000011A4                            74  *Convert DEC to HEX and store after output string
+000011A4                            75  D2H2: 
+000011A4  C6FC 0064                 76      MULU    #$64, D3        ; 1st digit * 100    
+000011A8  C8FC 000A                 77      MULU    #$0A, D4        ; 2nd digit * 10
+000011AC  D843                      78      ADD.W   D3,D4           ; Sums up 3 digits
+000011AE  DA44                      79      ADD.W   D4,D5 
+000011B0  0C85 000000FF             80      CMPI.L  #255,D5
+000011B6  6E00 003E                 81      BGT     ERR_D2H     
+000011BA  43F8 1145                 82      LEA     END_D2H_MSG,A1  ; To save converted HEX after output
+000011BE  4283                      83      CLR.L   D3
+000011C0  3605                      84      MOVE.W  D5,D3           ; Save a copy of D5 to be reuse
+000011C2  0243 0F00                 85      ANDI.W  #$0F00,D3       ; To obtain first hex value
+000011C6  E04B                      86      LSR.W   #8, D3          ; Make other byte 0, and shift it to lowest byte -> D3
+000011C8  4284                      87      CLR.L   D4
+000011CA  3805                      88      MOVE.W  D5,D4
+000011CC  0244 00F0                 89      ANDI.W  #$00F0,D4       ; To obtain second hex value
+000011D0  E84C                      90      LSR.W   #4, D4          ; Make other byte 0, and shift it to lowest byte -> D3
+000011D2  0205 000F                 91      ANDI.B  #$0F, D5        ; To obtain last hex value       
+000011D6  2205                      92      MOVE.L  D5,D1           ; Store 1's HEX value to be displayed
+000011D8  6100 FF26                 93      BSR     HEXtoASCII
+000011DC  2204                      94      MOVE.L  D4,D1           ; Store 10's HEX value to be displayed
+000011DE  6100 FF20                 95      BSR     HEXtoASCII     
+000011E2  2203                      96      MOVE.L  D3,D1           ; Store 100's HEX value to be displayed
+000011E4  6100 FF1A                 97      BSR     HEXtoASCII     
+000011E8  43F8 1130                 98  PRINT   LEA     D2H_MSG,A1  ; Go to beginning of string
+000011EC  103C 000D                 99          MOVE.B  #13,D0
+000011F0  4E4F                     100          TRAP    #15         ; Display converted HEX
+000011F2  6000 0008                101          BRA     END_D2H
+000011F6                           102      
+000011F6  4EB9 00001202            103  ERR_D2H     JSR    CMD_INVALID  ; Go to invalid command subroutine    
+000011FC                           104  END_D2H:    
+000011FC  4CDF 023C                105      MOVEM.L (A7)+,D2-D5/A1 ;Restore REGs
+00001200  4E75                     106      RTS
+00001202                           107  
+00001202                           108  *Prompt user when command is invalid
+00001202                           109  CMD_INVALID:
+00001202  48E7 8040                110         MOVEM.L D0/A1, -(A7)    ; Save REGs
+00001206  43F9 00001000            111         LEA     INVALID_COM, A1 ; Display error message
+0000120C  103C 000D                112         MOVE.B  #13,D0
+00001210  4E4F                     113         TRAP    #15
+00001212  4CDF 0201                114         MOVEM.L (A7)+,D0/A1     ; Restore REGs
+00001216  4E75                     115         RTS
+00001218                           116         
+00002300                           117      ORG    $2300
+00002300                           118  ;TEST1 DC.B    '$2400 $2408 ;A',0 ; Store testcase in input space
+00002300                           119  ;TEST1 DC.B    '$2400 $2408 ;D',0 ; Store testcase in input space
+00002300                           120  ;TEST1 DC.B    '123',0 ; Store testcase in input space
+00002300= 31 30 00                 121  TEST1 DC.B    '10',0 ; Store testcase in input space    
+00001000                           122      ORG    $1000
+00001000= 49 6E 76 61 6C 69 ...    123  INVALID_COM DC.B    'Invalid command',0 ; Imply user command has no match 
+00001010                           124  
+00001010                           125  START:                  ; first instruction of program
+00001010                           126  
+00001010  287C 00002301            127      MOVEA.L #$2301, A4
+00001016  6000 012E                128      BRA     D2H 
+0000101A                           129         END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+ALPHATOA            1116
+CMD_INVALID         1202
+D2H                 1146
+D2H2                11A4
+D2H_MSG             1130
+DIGITTOA            111E
+END_D2H             11FC
+END_D2H_MSG         1145
+ERR_D2H             11F6
+H2A_END             112A
+HEXTOA2             1106
+HEXTOA3             1122
+HEXTOASCII          1100
+INVALID_COM         1000
+ONE_D2H             1192
+PRINT               11E8
+START               1010
+TEST1               2300
+TWO_D2H             119A

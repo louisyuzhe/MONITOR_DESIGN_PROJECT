@@ -1,0 +1,131 @@
+00001010 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.15.04
+Created On: 11/27/2018 12:37:37 AM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001100                             7   ORG $1100
+00001100                             8  ***ASCII to HEX***
+00001100                             9  *Convert ASCII in (A4) to HEX in (D1)
+00001100                            10  ASCIItoHEX:
+00001100  48E7 1000                 11          MOVEM.L D3,-(A7)     ; Save register
+00001104  4281                      12          CLR.L   D1           ; Clear register
+00001106  4283                      13          CLR.L   D3
+00001108  161C                      14          MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+0000110A  0C03 0030                 15          CMPI.B  #$30,D3      ; Check if it is ASCII
+0000110E  6D00 0016                 16          BLT     A2H_END      ; Done if there isn't ASCII
+00001112  6100 001A                 17  AtoHEX2 BSR     ALPHAorDIGIT ; Determine alpha/digit
+00001116  D203                      18  AtoHEX3 ADD.B   D3,D1        ; Store converted HEX in D1
+00001118  161C                      19          MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+0000111A  0C03 0030                 20          CMPI.B  #$30,D3      ; Check if it is ASCII
+0000111E  6D00 0006                 21          BLT     A2H_END      ; Done if there isn't ASCII
+00001122  E981                      22          ASL.L   #4,D1        ; Shift left to store more HEX
+00001124  60EC                      23          BRA     AtoHEX2      ; LOOP the conversion
+00001126  538C                      24  A2H_END SUBA.L  #1,A4        ; leave A6 pointing at byte immediately after last number
+00001128  4CDF 0008                 25          MOVEM.L (A7)+,D3     ; restore registers
+0000112C  4E75                      26          RTS
+0000112E                            27  
+0000112E                            28  ALPHAorDIGIT:
+0000112E  0C03 0040                 29          CMPI.B  #$40,D3      ; Determine alpha/digit
+00001132  6D00 0004                 30          BLT     AtoDIGIT     ; Branch to subroutine AtoDIGIT        
+00001136                            31  *Convert ASCII (D3) to Alphabets
+00001136  5F03                      32  AtoALPHA SUBI.B #$7, D3 ; for A to F
+00001138                            33  *Convert ASCII (D3) to digits
+00001138  0403 0030                 34  AtoDIGIT SUBI.B #$30,D3 ; for 0 to 9
+0000113C  4E75                      35           RTS
+0000113E                            36  
+0000113E                            37      
+0000113E                            38  *** Addition***
+0000113E                            39  *ADD - Add two hex number and display
+0000113E                            40  *ADD $40 $5
+0000113E= 54 68 65 20 73 75 ...     41  ADD_MSG DC.B    'The sum = ',$0
+00001149                            42      
+00002000                            43      ORG $2000
+00002000                            44  ADD:
+00002000  48E7 AC40                 45      MOVEM.L  D0/D2/D4-D5/A1,-(A7)
+00002004  538C                      46      SUBA.L  #1, A4       ; Point to first byte of user input address 
+00002006  4281                      47      CLR.L   D1           ; To be used for stroing data
+00002008                            48      
+00002008                            49      *Store 1st hex value in D4
+00002008  121C                      50      MOVE.B  (A4)+,D1    ; First byte data from user input(A4 pointer)
+0000200A  0C01 0024                 51      CMPI.B  #$24,D1     ; #$24 is '$', test if user input a valid hex number
+0000200E  6600 003C                 52      BNE     ERR_ADD     ; INVALID value for ADD
+00002012  6100 F0EC                 53      BSR     ASCIItoHEX  ; D1 has 1st hex value
+00002016  2801                      54      MOVE.L  D1, D4      ; D4 now has 1st hex value
+00002018  121C                      55      MOVE.B  (A4)+,D1    ; Store the next byte in D1 to check blank space
+0000201A  0C01 0020                 56      CMPI.B  #$20,D1     ; Check if user input blank space before data
+0000201E  6600 002C                 57      BNE     ERR_ADD     ; INVALID Command format for ADD
+00002022                            58      
+00002022                            59      *Store 2nd hex value in D5
+00002022  121C                      60      MOVE.B  (A4)+,D1    ; First byte data from user input(A4 pointer)
+00002024  0C01 0024                 61      CMPI.B  #$24,D1     ; #$24 is '$', test if user input a valid hex number
+00002028  6600 0022                 62      BNE     ERR_ADD     ; INVALID value for ADD
+0000202C  6100 F0D2                 63      BSR     ASCIItoHEX  ; D1 has 1st hex value
+00002030  2A01                      64      MOVE.L  D1, D5      ; D4 now has 1st hex value
+00002032                            65  
+00002032                            66      *Addition
+00002032  DA84                      67      ADD.L   D4, D5      ; Sum both value up
+00002034  43F8 113E                 68      LEA     ADD_MSG,A1   ; Go to beginning of string
+00002038  103C 000E                 69      MOVE.B  #14,D0
+0000203C  4E4F                      70      TRAP    #15         ; Display sum message
+0000203E  7410                      71      MOVE.L  #16, D2     ; Set output as base 16
+00002040  2205                      72      MOVE.L D5,D1
+00002042  103C 000F                 73      MOVE.B  #15, D0 
+00002046  4E4F                      74      TRAP    #15         ; Display sum message
+00002048  6000 0008                 75      BRA     END_ADD
+0000204C                            76      
+0000204C  4EB9 00002058             77  ERR_ADD     JSR    CMD_INVALID  ; Go to invalid command subroutine    
+00002052                            78  END_ADD:    
+00002052  4CDF 0235                 79      MOVEM.L (A7)+,D0/D2/D4-D5/A1 ;Restore REGs
+00002056  4E75                      80      RTS
+00002058                            81  
+00002058                            82  *Prompt user when command is invalid
+00002058                            83  CMD_INVALID:
+00002058  48E7 8040                 84         MOVEM.L D0/A1, -(A7)    ; Save REGs
+0000205C  43F9 00001000             85         LEA     INVALID_COM, A1 ; Display error message
+00002062  103C 000D                 86         MOVE.B  #13,D0
+00002066  4E4F                      87         TRAP    #15
+00002068  4CDF 0201                 88         MOVEM.L (A7)+,D0/A1     ; Restore REGs
+0000206C  4E75                      89         RTS
+0000206E                            90         
+00002300                            91      ORG    $2300
+00002300                            92  ;TEST1 DC.B    '$2400 $2408 ;A',0 ; Store testcase in input space
+00002300                            93  ;TEST1 DC.B    '$2400 $2408 ;D',0 ; Store testcase in input space
+00002300= 24 38 46 46 46 46 ...     94  TEST1 DC.B    '$8FFFFFFF $7FFFFFFF',0 ; Store testcase in input space
+00002314                            95  
+00002314                            96      
+00001000                            97      ORG    $1000
+00001000= 49 6E 76 61 6C 69 ...     98  INVALID_COM DC.B    'Invalid command',0 ; Imply user command has no match 
+00001010                            99  
+00001010                           100  START:                  ; first instruction of program
+00001010                           101  
+00001010  287C 00002301            102      MOVEA.L #$2301, A4
+00001016  4EB8 2000                103      JSR     ADD 
+0000101A                           104         END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+A2H_END             1126
+ADD                 2000
+ADD_MSG             113E
+ALPHAORDIGIT        112E
+ASCIITOHEX          1100
+ATOALPHA            1136
+ATODIGIT            1138
+ATOHEX2             1112
+ATOHEX3             1116
+CMD_INVALID         2058
+END_ADD             2052
+ERR_ADD             204C
+INVALID_COM         1000
+START               1010
+TEST1               2300

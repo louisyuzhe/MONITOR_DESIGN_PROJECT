@@ -1,0 +1,139 @@
+00002000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.15.04
+Created On: 11/27/2018 4:10:33 PM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000                             8  
+00001000= 49 6E 76 61 6C 69 ...      9  INVALID_COM DC.B    'Invalid command',0 ; Imply user command has no match   
+00001010                            10  ***ASCII to HEX***
+00001010                            11  *Convert ASCII in (A4) to HEX in (D1)
+00001010                            12  ASCIItoHEX:
+00001010  48E7 1000                 13          MOVEM.L D3,-(A7)     ; Save register
+00001014  4281                      14          CLR.L   D1           ; Clear register
+00001016  4283                      15          CLR.L   D3
+00001018  161C                      16          MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+0000101A  0C03 0030                 17          CMPI.B  #$30,D3      ; Check if it is ASCII
+0000101E  6D00 0016                 18          BLT     A2H_END      ; Done if there isn't ASCII
+00001022  6100 001A                 19  AtoHEX2 BSR     ALPHAorDIGIT ; Determine alpha/digit
+00001026  D203                      20  AtoHEX3 ADD.B   D3,D1        ; Store converted HEX in D1
+00001028  161C                      21          MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+0000102A  0C03 0030                 22          CMPI.B  #$30,D3      ; Check if it is ASCII
+0000102E  6D00 0006                 23          BLT     A2H_END      ; Done if there isn't ASCII
+00001032  E981                      24          ASL.L   #4,D1        ; Shift left to store more HEX
+00001034  60EC                      25          BRA     AtoHEX2      ; LOOP the conversion
+00001036  538C                      26  A2H_END SUBA.L  #1,A4        ; leave A6 pointing at byte immediately after last number
+00001038  4CDF 0008                 27          MOVEM.L (A7)+,D3     ; restore registers
+0000103C  4E75                      28          RTS
+0000103E                            29          
+0000103E                            30  ALPHAorDIGIT:
+0000103E  0C03 0040                 31          CMPI.B  #$40,D3      ; Determine alpha/digit
+00001042  6D00 0004                 32          BLT     AtoDIGIT     ; Branch to subroutine AtoDIGIT        
+00001046                            33  *Convert ASCII (D3) to Alphabets
+00001046  5F03                      34  AtoALPHA SUBI.B #$7, D3 ; for A to F
+00001048                            35  *Convert ASCII (D3) to digits
+00001048  0403 0030                 36  AtoDIGIT SUBI.B #$30,D3 ; for 0 to 9
+0000104C  4E75                      37           RTS
+0000104E                            38  
+00001200                            39      ORG $1200
+00001200                            40  ***Block Fill***        
+00001200                            41  *BF - fills memory starting with the word boundary <address1> through <address2>
+00001200                            42  BF:     
+00001200  48E7 5A46                 43        MOVEM.L D1/D3/D4/D6/A1/A5-A6,-(A7)
+00001204  538C                      44        SUBA.L  #1, A4       ; Point to first byte of user input address        
+00001206  121C                      45        MOVE.B  (A4)+,D1     ; First byte data from user input(A4 pointer)
+00001208  0C01 0024                 46        CMPI.B  #$24,D1      ; #$24 is '$', test if user input a valid address sign
+0000120C  6600 005C                 47        BNE     ERR_BF       ; INVALID Address for BF
+00001210  6100 FDFE                 48        BSR     ASCIItoHEX   ; D1 has 1st address(ASCII) to be converted
+00001214  2A41                      49        MOVEA.L D1,A5        ; 1st Address(HEX) stored in A5
+00001216  121C                      50        MOVE.B  (A4)+,D1     ; Blank space before next $address
+00001218  0C01 0020                 51        CMPI.B  #$20,D1      ; Check if it's a blank space 
+0000121C  6600 004C                 52        BNE     ERR_BF         
+00001220  4281                      53        CLR.L   D1           ; Clear D1    
+00001222  121C                      54        MOVE.B  (A4)+,D1     ; second byte of input address
+00001224  0C01 0024                 55        CMPI.B  #$24,D1      ; #$24 is '$', test if user input a valid address sign
+00001228  6600 0040                 56        BNE     ERR_BF       ; If not equal $, there is no 2nd address
+0000122C  6100 FDE2                 57        BSR     ASCIItoHEX   ; D1 has 2nd address(ASCII) to be converted
+00001230  2C41                      58        MOVEA.L D1,A6        ; 2nd Address(HEX) stored in A6
+00001232                            59       
+00001232  7804                      60        MOVE.L  #4,D4        ; counter for data pattern (4 characters)
+00001234  4286                      61        CLR.L   D6           ; D6 to store word-size (2 bytes) data pattern
+00001236  121C                      62        MOVE.B  (A4)+,D1     ; Check if user enter any data pattern  
+00001238  0C01 0000                 63        CMPI.B  #$00,D1      ; Default 0 if any data pattern is not entered
+0000123C  6700 0022                 64        BEQ     BF3          ; Store leadign zeroes
+00001240  0C01 0020                 65        CMPI.B  #$20,D1      ; Check if user input blank space before data pattern
+00001244  6600 0024                 66        BNE     ERR_BF       ; If not, invalid command is entered
+00001248  5304                      67        SUBQ.B  #1, D4       ; point to first data pattern input
+0000124A                            68                
+0000124A  4283                      69  BF2   CLR.L   D3           
+0000124C  161C                      70        MOVE.B  (A4)+,D3     ; One byte data from user input(A4 poier)
+0000124E  4A03                      71        TST.B   D3           ; Check if any data pattern is entered
+00001250  6700 000E                 72        BEQ     BF3          ; If reaches blank space, add leading zeroes
+00001254  E986                      73        ASL.L   #4,D6        ; Shift left by 4, First char on left byte
+00001256  6100 FDE6                 74        BSR     ALPHAorDIGIT ; Convert to HEX character 
+0000125A  DC03                      75        ADD.B   D3,D6        ; Converted character is now on right
+0000125C  51CC FFEC                 76        DBF     D4, BF2      ; Debrease D4, Keep looping and check next data pattern
+00001260                            77  BF3   ;MOVE.W  (A3),D4    ; TEST: if address2 not even, address error is raised
+00001260                            78  
+00001260  BDCD                      79  LOOP_BF CMPA.L  A5, A6      ; Check if A5 = A6
+00001262  6F00 000A                 80          BLE     END_BF      ; if equal, go to the end
+00001266  3AC6                      81          MOVE.W  D6, (A5)+   ; Store data pattern in the boudary
+00001268  60F6                      82          BRA     LOOP_BF     ; Else, keep looping
+0000126A  6100 0008                 83  ERR_BF  BSR     CMD_INVALID ; Display invalid command error msg            
+0000126E  4CDF 625A                 84  END_BF  MOVEM.L (A7)+,D1/D3/D4/D6/A1/A5-A6
+00001272  4E75                      85          RTS    
+00001274                            86        
+00001274                            87  *Prompt user when command is invalid
+00001274                            88  CMD_INVALID:
+00001274  48E7 8040                 89         MOVEM.L D0/A1, -(A7)    ; Save REGs
+00001278  43F8 1000                 90         LEA     INVALID_COM, A1 ; Display error message
+0000127C  103C 000D                 91         MOVE.B  #13,D0
+00001280  4E4F                      92         TRAP    #15
+00001282  4CDF 0201                 93         MOVEM.L (A7)+,D0/A1     ; Restore REGs
+00001286  4E75                      94         RTS
+00001288                            95  
+00002300                            96      ORG $2300
+00002300= 24 32 33 41 30 20 ...     97  TEST1 DC.B    '$23A0 $23AF ABCD',0 ; Store testcase in input space
+00002311                            98  ;TEST1 DC.B    '$23A0 $23AF 1234',0 ; Store testcase in input space
+00002311                            99  ;TEST1 DC.B    '$23A0 $23AF 4',0 ; Store testcase in input space  
+00002311                           100  ;TEST1 DC.B    '$23A0 $23AF 123',0 ; Store testcase in input space  
+00002311                           101  ;TEST1 DC.B    '$23A0 $23AF 12',0 ; Store testcase in input space  
+00002311                           102  
+00002311                           103  
+00002311                           104  * Put variables and constants here
+00002000                           105      ORG $2000
+00002000                           106  START:                  ; first instruction of program
+00002000  287C 00002301            107      MOVEA.L #$2301, A4
+00002006  6000 F1F8                108      BRA      BF 
+0000200A                           109         
+0000200A                           110      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+A2H_END             1036
+ALPHAORDIGIT        103E
+ASCIITOHEX          1010
+ATOALPHA            1046
+ATODIGIT            1048
+ATOHEX2             1022
+ATOHEX3             1026
+BF                  1200
+BF2                 124A
+BF3                 1260
+CMD_INVALID         1274
+END_BF              126E
+ERR_BF              126A
+INVALID_COM         1000
+LOOP_BF             1260
+START               2000
+TEST1               2300

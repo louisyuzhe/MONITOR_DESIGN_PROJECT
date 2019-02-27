@@ -1,0 +1,103 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.15.04
+Created On: 11/26/2018 2:01:13 AM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00002000                             7      ORG    $2000
+00002000  1A3C 0000                  8  INVALID_ADR MOVE.B  #0, D5 
+00002004                             9  
+00002004                            10  
+00002004                            11  ***ASCII to HEX***
+00002004                            12  *Convert ASCII in (A4) to HEX in (D1)
+00002004                            13  ASCIItoHEX:
+00002004  48E7 1000                 14          MOVEM.L D3,-(A7)     ; Save register
+00002008  4281                      15          CLR.L   D1           ; Clear register
+0000200A  4283                      16          CLR.L   D3
+0000200C  161C                      17          MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+0000200E  0C03 0030                 18          CMPI.B  #$30,D3      ; Check if it is ASCII
+00002012  6D00 0016                 19          BLT     A2H_END      ; Done if there isn't ASCII
+00002016  6100 004E                 20  AtoHEX2 BSR     ALPHAorDIGIT ; Determine alpha/digit
+0000201A  D203                      21  AtoHEX3 ADD.B   D3,D1        ; Store converted HEX in D1
+0000201C  161C                      22          MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+0000201E  0C03 0030                 23          CMPI.B  #$30,D3      ; Check if it is ASCII
+00002022  6D00 0006                 24          BLT     A2H_END      ; Done if there isn't ASCII
+00002026  E981                      25          ASL.L   #4,D1        ; Shift left to store more HEX
+00002028  60EC                      26          BRA     AtoHEX2      ; LOOP the conversion
+0000202A  538C                      27  A2H_END SUBA.L  #1,A4        ; leave A6 pointing at byte immediately after last number
+0000202C  4CDF 0008                 28          MOVEM.L (A7)+,D3     ; restore registers
+00002030  4E75                      29          RTS
+00002032                            30   
+00002032                            31  
+00002032                            32  *Convert ASCII in (A4) to HEX in (D1) for MM, ends when detected ';'
+00002032                            33  ASCIItoHEX_MM:
+00002032  48E7 1000                 34             MOVEM.L D3,-(A7)     ; Save register
+00002036  4281                      35             CLR.L   D1           ; Clear register
+00002038  4283                      36             CLR.L   D3
+0000203A  161C                      37             MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+0000203C  0C03 003B                 38             CMPI.B  #';',D3      ; Check if it is ';'
+00002040  6700 001C                 39             BEQ     A2H_END_MM   ; Done if it meets ';'
+00002044  0C03 0030                 40             CMPI.B  #$30,D3      ; Check if it is ASCII
+00002048  6DE0                      41             BLT     A2H_END      ; Done if there isn't ASCII
+0000204A  6100 001A                 42  AtoHEX2_MM BSR     ALPHAorDIGIT ; Determine alpha/digit
+0000204E  D203                      43  AtoHEX3_MM ADD.B   D3,D1        ; Store converted HEX in D1
+00002050  161C                      44             MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+00002052  0C03 0030                 45             CMPI.B  #$30,D3      ; Check if it is ASCII
+00002056  6D00 0006                 46             BLT     A2H_END_MM   ; Done if there isn't ASCII
+0000205A  E981                      47             ASL.L   #4,D1        ; Shift left to store more HEX
+0000205C  60EC                      48             BRA     AtoHEX2_MM   ; LOOP the conversion
+0000205E  538C                      49  A2H_END_MM SUBA.L  #1,A4        ; leave A6 pointing at byte immediately after last number
+00002060  4CDF 0008                 50             MOVEM.L (A7)+,D3     ; restore registers
+00002064  4E75                      51             RTS
+00002066                            52             
+00002066                            53  ALPHAorDIGIT:
+00002066  0C03 0040                 54          CMPI.B  #$40,D3      ; Determine alpha/digit
+0000206A  6D00 0004                 55          BLT     AtoDIGIT     ; Branch to subroutine AtoDIGIT        
+0000206E                            56  *Convert ASCII (D3) to Alphabets
+0000206E  5F03                      57  AtoALPHA SUBI.B #$7, D3 ; for A to F
+00002070                            58  *Convert ASCII (D3) to digits
+00002070  0403 0030                 59  AtoDIGIT SUBI.B #$30,D3 ; for 0 to 9
+00002074  4E75                      60           RTS
+00002076                            61           
+00001000                            62          ORG    $1000
+00001000                            63  
+00001000                            64  START:                  ; first instruction of program
+00001000  =00000050                 65  MAX_IN_LEN  EQU 80  ; to ensure input won't overflow stack
+00001000  =00002FFC                 66  STACK       EQU $2FFC   ; $3000 minus a long word because A7 will be stored first
+00001000  21CF 2FFC                 67          MOVE.L  A7,STACK    ; store original location of stack beforehand
+00001004  4FF8 2FFC                 68          LEA     STACK,A7
+00001008  48E7 FFFE                 69          MOVEM.L D0-D7/A0-A6,-(A7)   ; store all registers in stack. Want to be able to restore them
+0000100C                            70      
+0000100C  287C 00004000             71      MOVE.L  #$4000,A4
+00001012  18FC 003B                 72      MOVE.B  #$3B,(A4)+
+00001016  18FC 003A                 73      MOVE.B  #$3A,(A4)+
+0000101A  287C 00004000             74      MOVE.L  #$4000,A4
+00001020  6000 1010                 75      BRA ASCIItoHEX_MM
+00001024                            76      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+A2H_END             202A
+A2H_END_MM          205E
+ALPHAORDIGIT        2066
+ASCIITOHEX          2004
+ASCIITOHEX_MM       2032
+ATOALPHA            206E
+ATODIGIT            2070
+ATOHEX2             2016
+ATOHEX2_MM          204A
+ATOHEX3             201A
+ATOHEX3_MM          204E
+INVALID_ADR         2000
+MAX_IN_LEN          50
+STACK               2FFC
+START               1000

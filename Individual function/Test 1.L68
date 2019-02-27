@@ -1,0 +1,328 @@
+00002000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.15.04
+Created On: 11/25/2018 12:48:00 PM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7          ORG $1000
+00001000                             8          
+00001000= 4D 4F 4E 49 54 4F ...      9  PROMPT      DC.B    'MONITOR441> ',0     ; Prompt definition
+0000100D= 00                        10  USER_INPUT  DC.B    0                    ; User input spaces size residing in memory 
+0000100E                            11     
+00001080                            12          ORG $1080
+00001080= 49 6E 76 61 6C 69 ...     13  INVALID_COM DC.B    'Invalid command',0 ; Imply user command has no match   
+00001090= 49 6E 76 61 6C 69 ...     14  INVALID_ADR DC.B    'Invalid Address',0 ; Imply input address is invalid 
+000010A0= 54 68 65 20 6F 72 ...     15  BusAddrErr  DC.B    'The order: SSW BA IR',0 ; Output follows after Bus & Address Error Exception
+000010B5= 45 78 69 74 65 64 00      16  EXIT_PRMPT  DC.B    'Exited',0          ;Imply termination/exit of monitor program  
+000010BC= 48 45 4C 50 00            17  ONE         DC.B    'HELP',0
+000010C1= 4D 44 53 50 00            18  TWO         DC.B    'MDSP',0
+000010C6= 53 4F 52 54 57 00         19  THREE       DC.B    'SORTW',0
+000010CC                            20  
+000010CC                            21  ***COMMAND TABLE***
+000010CC                            22  **Command Names**
+000010CC= 48 45 4C 50 20 20 ...     23  COM_TABL    DC.B    'HELP    '    ; String ‘HELP’ stored in memory (ASCII)
+000010D4= 4D 44 53 50 20 20 ...     24              DC.B    'MDSP    ' 
+000010DC= 53 4F 52 54 57 20 ...     25              DC.B    'SORTW   ' 
+000010E4                            26              ;DC.B    'MM      '
+000010E4                            27              ;DC.B    'MS      '
+000010E4                            28              ;DC.B    'BF      '
+000010E4                            29              ;DC.B    'BMOV    '
+000010E4                            30              ;DC.B    'BTST    '
+000010E4                            31              ;DC.B    'BSCH    '
+000010E4= 47 4F 20 20 20 20 ...     32              DC.B    'GO      '
+000010EC                            33              ;DC.B    'DF      '
+000010EC= 45 58 49 54 20 20 ...     34              DC.B    'EXIT    '
+000010F4                            35              ;DC.B    'NEWCMD1 '
+000010F4                            36              ;DC.B    'NEWCMD2 '
+000010F4                            37  
+000010F4                            38  **Command Addresses**         
+000010F4= 20AE                      39  COM_ADDR    DC.W    HELP         ;HELP is the address for HELP command subroutine 
+000010F6= 20BA                      40              DC.W    MDSP
+000010F8= 20C6                      41              DC.W    SORTW
+000010FA                            42              ;DC.W    MM
+000010FA                            43              ;DC.W    MS
+000010FA                            44              ;DC.W    BF
+000010FA                            45              ;DC.W    BMOV
+000010FA                            46              ;DC.W    BTST
+000010FA                            47              ;DC.W    BSCH
+000010FA= 2072                      48              DC.W    GO
+000010FC                            49              ;DC.W    DF
+000010FC= 2096                      50              DC.W    EXIT
+000010FE                            51              ;DC.W    NEWCMD1
+000010FE                            52              ;DC.W    NEWCMD2
+000010FE                            53  
+000010FE                            54  ***HELP TABLE***
+000010FE= 41 6C 6C 20 61 76 ...     55  HELP_TABL     DC.B      'All available commands and usage descriptions:',$A,$A,$D
+0000112F= 4D 44 53 50 20 3C ...     56  LINE1A        DC.B      'MDSP <address1> <address2> - eg: MDSP $4002 $4016<CR>',$A,$D
+00001166= 4D 44 53 50 3A 20 ...     57  LINE1B        DC.B      'MDSP: Outputs Address And Memory Contents <address1> -> <address2>',$A,$D
+000011AA= 44 65 66 61 75 6C ...     58  LINE1C        DC.B      'Default: <address1> -> <address1 + 16bytes>',$A,$A,$D
+000011D8= 53 4F 52 54 57 20 ...     59  LINE2A        DC.B      'SORTW <address1> <address2> <A or D> - eg: SORTW $4000 $4008 D<CR>.',$A,$D
+0000121D= 3C 41 3E 20 73 70 ...     60  LINE2B        DC.B      '<A> specifies the list is sorted in Ascending order, <D> for Decending',$A,$D
+00001265= 53 4F 52 54 57 3A ...     61  LINE2C        DC.B      'SORTW: Sorts Unsigned Words from memory <address1> to <address2>',$A,$D
+000012A7= 44 65 66 61 75 6C ...     62  LINE2D        DC.B      'Default: Descending Order',$A,$A,$D
+000012C3= 4D 4D 20 3C 61 64 ...     63  LINE3A        DC.B      'MM <address> <B/W/L> - eg: MM $4000 W',$A,$D
+000012EA= 3C 42 2F 57 2F 4C ...     64  LINE3B        DC.B      '<B/W/L> specifies the number of bytes displayed for each address.',$A,$D
+0000132D= 4D 4D 3A 20 44 69 ...     65  LINE3C        DC.B      'MM: Display memory, modify data or enter new data',$A,$D
+00001360= 3C 57 3E 20 73 70 ...     66  LINE3D        DC.B      '<W> specifies word size, <W> specifies long size'
+00001390= 44 65 66 61 75 6C ...     67  LINE3E        DC.B      'Default: Displays byte size content',$A,$A,$D
+000013B6= 4D 53 20 3C 61 64 ...     68  LINE4A        DC.B      'MS <address> <data> - eg: MS $4000 Hello World',$A,$D
+000013E6= 4D 53 3A 20 53 65 ...     69  LINE4B        DC.B      'MS: Sets <data> into the <address> specified.',$A,$A,$D
+00001416= 42 46 20 3C 61 64 ...     70  LINE5A        DC.B      'BF <address1> <address2> <data> - eg: $4000 $4050 1234' ,$A,$D
+0000144E= 3C 61 64 64 72 65 ...     71  LINE5B        DC.B      '<address1> and <address2> must be even.',$A,$D
+00001477= 42 46 3A 20 46 69 ...     72  LINE5C        DC.B      'BF: Fills memory starting with the word boundary <address1> through <address2>.',$A,$D
+000014C8= 4F 6E 6C 79 20 61 ...     73  LINE5D        DC.B      'Only allows word-size (2 bytes) data pattern.',$A,$D
+000014F7= 49 66 20 6C 65 73 ...     74  LINE5E        DC.B      'If less than word size, the pattern is right justified ',$A,$D
+00001530= 61 6E 64 20 6C 65 ...     75  LINE5F        DC.B      'and leading zeros are inserted.',$A,$A,$D
+00001552= 42 4D 4F 56 20 3C ...     76  LINE6A        DC.B      'BMOV <address1> <address2> <address3> - eg: BMOW $4000 #4100 $5000',$A,$D
+00001596= 42 4D 4F 56 3A 20 ...     77  LINE6B        DC.B      'BMOV: Moves memory from <address1> (inclusive) till <address2> (exclusive)'
+000015E0= 74 6F 20 3C 61 64 ...     78  LINE6C        DC.B      'to <address3>(inclusive)',$A,$A,$D
+000015FB= 42 54 53 54 20 3C ...     79  LINE7A        DC.B      'BTST <address1> <address2> - eg: BTST $4000 $400A',$A,$D
+0000162E= 42 54 53 54 3A 20 ...     80  LINE7B        DC.B      'BTST: test memory from <address1> (inclusive) till <address2> (exclusive)',$A,$A,$D
+0000167A= 42 53 43 48 20 3C ...     81  LINE8A        DC.B      'BSCH <address1> <address2> <data> - eg: BSCH $4000 $4400 String',$A,$D
+000016BB= 42 53 43 48 3A 20 ...     82  LINE8B        DC.B      'BSCH: search a literal string in a memory block ',$A,$D
+000016ED= 73 74 61 72 74 69 ...     83  LINE8C        DC.B      'starting at <address1> through <address2> both inclusive.',$A,$A,$D
+00001729= 47 4F 20 3C 61 64 ...     84  LINE9A        DC.B      'GO <address> - eg: GO $3010',$A,$D
+00001746= 47 4F 3A 20 20 73 ...     85  LINE9B        DC.B      'GO:  start execution from <address>',$A,$A,$D
+0000176C= 44 46 3A 20 64 69 ...     86  LINE10        DC.B      'DF: display current PC, SR, US, SS and D, A registers',$A,$A,$D
+000017A4= 45 58 49 54 3A 20 ...     87  LINE11        DC.B      'EXIT: terminates/exits Monitor program',$0
+000017CB                            88  
+000017CB                            89  ***BTST MESSAGES***
+000017CB= 4E 75 6D 62 65 72 ...     90  BTST1         DC.B      'Number written was: '
+000017DF= 4E 75 6D 62 65 72 ...     91  BTST2         DC.B      'Number read was: '
+000017F0= 42 6C 6F 63 6B 20 ...     92  BTST3         DC.B      'Block Test PASSES!'
+00001802= 46 41 49 4C 55 52 ...     93  BTST4         DC.B      'FAILURE!!!!'  
+0000180D= 45 72 72 6F 72 20 ...     94  BTST5         DC.B      'Error Occurred at address: '      
+00001828                            95  
+00001828                            96  ***BSCH MESSAGES***
+00001828= 44 61 74 61 3A 20         97  BSCH1         DC.B      'Data: '
+0000182E= 46 6F 75 6E 64 20 ...     98  BSCH2         DC.B      'Found at address: '
+00001840= 50 61 74 74 65 72 ...     99  BSCH3         DC.B      'Pattern not found'
+00001851                           100  
+00001851                           101  ***EXCEPTION TABLE***
+00001851= 0D 42 75 73 20 45 ...    102  BERR_TXT    DC.B    $D,'Bus Error Exception',0
+00001866= 0D 41 64 64 72 65 ...    103  ADDERR_TXT  DC.B    $D,'Address Error Exception',0   
+0000187F= 0D 49 6C 6C 65 67 ...    104  ILLINST_TXT DC.B    $D,'Illegal Instruction Exception',0
+0000189E= 0D 50 72 69 76 69 ...    105  PRIVVIO_TXT DC.B    $D,'Privilege Violation Exception ',0
+000018BE= 0D 44 69 76 69 64 ...    106  DIVZERO_TXT DC.B    $D,'Divide by Zero Exception',0
+000018D8= 0D 43 68 65 63 6B ...    107  CHKINS_TXT  DC.B    $D,'Check Instruction Exception',0
+000018F5= 0D 4C 69 6E 65 20 ...    108  LINEA_TXT   DC.B    $D,'Line A Emulator Exception',0
+00001910= 0D 4C 69 6E 65 20 ...    109  LINEF_TXT   DC.B    $D,'Line F Emulator Exception',0
+0000192B                           110  
+0000192B                           111           
+00002000                           112      ORG $2000
+00002000                           113  START:
+00002000  =00002FFC                114  STACK       EQU $2FFC   ; $3000 minus a long word because A7 will be stored first4
+00002000                           115  ;MAX_IN_LEN  EQU 80  ; to ensure input won't overflow stack
+00002000  21CF 2FFC                116          MOVE.L  A7,STACK    ; store original location of stack beforehand
+00002004  4FF8 2FFC                117          LEA     STACK,A7
+00002008  48E7 FFFE                118          MOVEM.L D0-D7/A0-A6,-(A7)   ; store all registers in stack. Want to be able to restore them
+0000200C  4FF8 2FFC                119          LEA     STACK,A7
+00002010  584F                     120          ADDQ.W  #4,A7
+00002012                           121         
+00002012                           122  ***--------------------------- Command Interpreter ----------------------------***
+00002012                           123  
+00002012                           124            ;SUBA.L  #MAX_IN_LEN,A7  ; open space in stack for input (do only once)
+00002012  43F8 1000                125  BEGIN     LEA     PROMPT, A1  ; Prompt for user input “MONITOR441>” 
+00002016  700E                     126            MOVE.L  #14,D0      ; Display Prompt
+00002018  4E4F                     127            TRAP    #15
+0000201A  43F8 100D                128            LEA     USER_INPUT, A1      ; When user input, store to reserve user input space
+0000201E  7002                     129            MOVE.L  #2,D0       ; Read input ans return to (A1)
+00002020  4E4F                     130            TRAP    #15
+00002022                           131            
+00002022  45F8 10CC                132            LEA     COM_TABL,A2  ; Load Command Table (Start)
+00002026  47F8 10F4                133            LEA     COM_ADDR,A3  ; Load Command Table (End)
+0000202A  4282                     134            CLR.L   D2           ; Command Counter
+0000202C  2849                     135  LOOKUP    MOVEA.L A1,A4        ; Point to user input       
+0000202E  7809                     136            MOVE.L  #9, D4  
+00002030  5304                     137  CMP_Char  SUBI.B  #1, D4
+00002032  B90A                     138            CMPM.B  (A2)+, (A4)+ ; Compare byte (input) vs (CMD table)
+00002034  67FA                     139            BEQ     CMP_Char     ; If same, keep comparing
+00002036  0C22 0020                140            CMPI.B  #$20, -(A2)  ; Check if reach blank space 
+0000203A  6700 0014                141            BEQ     Run_CMD      ; If 0, means all strings are same, select command
+0000203E  528A                     142  NEXTCMD   ADDA.L  #1, A2       ; Loop thru the rest of blank spaces
+00002040  5304                     143            SUBI.B  #1, D4
+00002042  66FA                     144            BNE     NEXTCMD      ; 
+00002044  5482                     145            ADDQ.L  #2,D2        ; Else, point to next cmd address
+00002046                           146            ;ADDQ.L  #8,A4        ; Go to next command
+00002046  B7CA                     147            CMPA.L  A2,A3        ; Check if reach end of COM_TABL
+00002048  6CE2                     148            BGE     LOOKUP       ; Else, keep looking up command         
+0000204A  6100 0012                149            BSR     CMD_INVALID  ; Prompt Invalid command
+0000204E  60C2                     150            BRA     BEGIN        ; Start prompt again
+00002050                           151            
+00002050  D7C2                     152  Run_CMD   ADDA.L  D2,A3        ; point to the cmd adr in COM_ADDR 
+00002052  2A7C 00000000            153            MOVEA.L #0,A5        ; clear A5, used for subroutine call
+00002058  3A53                     154            MOVEA.W (A3),A5      ; move that command's address to register
+0000205A  4E95                     155            JSR     (A5)        ; jump to that command's subroutine (below)
+0000205C  60B4                     156            BRA     BEGIN        ; Prompt for new command
+0000205E                           157  
+0000205E                           158  *Prompt user when command is invalid
+0000205E                           159  CMD_INVALID:
+0000205E  48E7 8040                160         MOVEM.L D0/A1, -(A7)    ; Save REGs
+00002062  43F8 1080                161         LEA     INVALID_COM, A1 ; Display error message
+00002066  103C 000D                162         MOVE.B  #13,D0
+0000206A  4E4F                     163         TRAP    #15
+0000206C  4CDF 0201                164         MOVEM.L (A7)+,D0/A1     ; Restore REGs
+00002070  4E75                     165         RTS  
+00002072                           166  ***Execute Program***        
+00002072                           167  *GO -  start execution from a given address
+00002072  48E7 FFFF                168  GO      MOVEM.L D0-D7/A0-A7,-(A7) ; Save all registers
+00002076  538C                     169          SUBA.L  #1, A4       ; Point to first byte of user inout address        
+00002078  121C                     170          MOVE.B  (A4)+,D1     ; Cope byte address from user input(A4 pointer)
+0000207A  0C01 0024                171          CMPI.B  #$24,D1      ; #$24 is '$', test if user input a valid address sign
+0000207E  6600 000E                172          BNE     ERR_GO       ; INVALID Address for GO
+00002082  6100 004E                173          BSR     ASCIItoHEX   ; Convert mem addr to be run
+00002086  2C41                     174          MOVEA.L D1,A6        ; Store user input addr in A6
+00002088  4E96                     175          JSR     (A6)         ; Start execution from (A6)
+0000208A  6000 0004                176          BRA     END_GO       ; End GO subroutine
+0000208E  61CE                     177  ERR_GO  BSR     CMD_INVALID  ; Display invalid command error msg       
+00002090  4CDF FFFF                178  END_GO  MOVEM.L (A7)+,D0-D7/A0-A7 ; Restore Resgisters
+00002094  4E75                     179          RTS
+00002096                           180          
+00002096                           181  *EXIT - erminates/exits Monitor program
+00002096  43F8 10B5                182  EXIT    LEA     EXIT_PRMPT ,A1    ; Display exiting msg
+0000209A  103C 000D                183          MOVE.B  #13,D0
+0000209E  4E4F                     184          TRAP    #15             
+000020A0  588F                     185          ADDA.L  #4,A7             ; Skip PC on stack(4 bytes)
+000020A2  4CDF 7FFF                186          MOVEM.L (A7)+,D0-D7/A0-A6 ; Restore Registers saved at beginning of program
+000020A6  2E78 2FFC                187          MOVEA.L STACK,A7
+000020AA  6000 0064                188          BRA     END               ; Terminate Monitor Program  
+000020AE                           189         
+000020AE  43F8 10BC                190  HELP     LEA     ONE ,A1    ; Display exiting msg
+000020B2  103C 000D                191          MOVE.B  #13,D0
+000020B6  4E4F                     192          TRAP    #15   
+000020B8  4E75                     193              RTS
+000020BA  43F8 10C1                194  MDSP        LEA     TWO ,A1    ; Display exiting msg
+000020BE  103C 000D                195          MOVE.B  #13,D0
+000020C2  4E4F                     196          TRAP    #15
+000020C4  4E75                     197              RTS
+000020C6  43F8 10C6                198  SORTW       LEA     THREE ,A1    ; Display exiting msg
+000020CA  103C 000D                199          MOVE.B  #13,D0
+000020CE  4E4F                     200          TRAP    #15
+000020D0  4E75                     201              RTS
+000020D2                           202  
+000020D2                           203  ***ASCII to HEX***
+000020D2                           204  *Convert ASCII in (A4) to HEX in (D1)
+000020D2                           205  ASCIItoHEX:
+000020D2  48E7 1000                206          MOVEM.L D3,-(A7)     ; Save register
+000020D6  4281                     207          CLR.L   D1           ; Clear register
+000020D8  4283                     208          CLR.L   D3
+000020DA  161C                     209          MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+000020DC  0C03 0030                210          CMPI.B  #$30,D3      ; Check if it is ASCII
+000020E0  6D00 0016                211          BLT     A2H_END      ; Done if there isn't ASCII
+000020E4  6100 001A                212  AtoHEX2 BSR     ALPHAorDIGIT ; Determine alpha/digit
+000020E8  D203                     213  AtoHEX3 ADD.B   D3,D1        ; Store converted HEX in D1
+000020EA  161C                     214          MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+000020EC  0C03 0030                215          CMPI.B  #$30,D3      ; Check if it is ASCII
+000020F0  6D00 0006                216          BLT     A2H_END      ; Done if there isn't ASCII
+000020F4  E981                     217          ASL.L   #4,D1        ; Shift left to store more HEX
+000020F6  60EC                     218          BRA     AtoHEX2      ; LOOP the conversion
+000020F8  538C                     219  A2H_END SUBA.L  #1,A4        ; leave A6 pointing at byte immediately after last number
+000020FA  4CDF 0008                220          MOVEM.L (A7)+,D3     ; restore registers
+000020FE  4E75                     221          RTS
+00002100                           222          
+00002100                           223  ALPHAorDIGIT:
+00002100  0C03 0040                224          CMPI.B  #$40,D3      ; Determine alpha/digit
+00002104  6D00 0004                225          BLT     AtoDIGIT     ; Branch to subroutine AtoDIGIT        
+00002108                           226  *Convert ASCII (D3) to Alphabets
+00002108  5F03                     227  AtoALPHA SUBI.B #$7, D3 ; for A to F
+0000210A                           228  *Convert ASCII (D3) to digits
+0000210A  0403 0030                229  AtoDIGIT SUBI.B #$30,D3 ; for 0 to 9
+0000210E  4E75                     230           RTS  
+00002110                           231  
+00002110                           232  END:        
+00002110                           233      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+A2H_END             20F8
+ADDERR_TXT          1866
+ALPHAORDIGIT        2100
+ASCIITOHEX          20D2
+ATOALPHA            2108
+ATODIGIT            210A
+ATOHEX2             20E4
+ATOHEX3             20E8
+BEGIN               2012
+BERR_TXT            1851
+BSCH1               1828
+BSCH2               182E
+BSCH3               1840
+BTST1               17CB
+BTST2               17DF
+BTST3               17F0
+BTST4               1802
+BTST5               180D
+BUSADDRERR          10A0
+CHKINS_TXT          18D8
+CMD_INVALID         205E
+CMP_CHAR            2030
+COM_ADDR            10F4
+COM_TABL            10CC
+DIVZERO_TXT         18BE
+END                 2110
+END_GO              2090
+ERR_GO              208E
+EXIT                2096
+EXIT_PRMPT          10B5
+GO                  2072
+HELP                20AE
+HELP_TABL           10FE
+ILLINST_TXT         187F
+INVALID_ADR         1090
+INVALID_COM         1080
+LINE10              176C
+LINE11              17A4
+LINE1A              112F
+LINE1B              1166
+LINE1C              11AA
+LINE2A              11D8
+LINE2B              121D
+LINE2C              1265
+LINE2D              12A7
+LINE3A              12C3
+LINE3B              12EA
+LINE3C              132D
+LINE3D              1360
+LINE3E              1390
+LINE4A              13B6
+LINE4B              13E6
+LINE5A              1416
+LINE5B              144E
+LINE5C              1477
+LINE5D              14C8
+LINE5E              14F7
+LINE5F              1530
+LINE6A              1552
+LINE6B              1596
+LINE6C              15E0
+LINE7A              15FB
+LINE7B              162E
+LINE8A              167A
+LINE8B              16BB
+LINE8C              16ED
+LINE9A              1729
+LINE9B              1746
+LINEA_TXT           18F5
+LINEF_TXT           1910
+LOOKUP              202C
+MDSP                20BA
+NEXTCMD             203E
+ONE                 10BC
+PRIVVIO_TXT         189E
+PROMPT              1000
+RUN_CMD             2050
+SORTW               20C6
+STACK               2FFC
+START               2000
+THREE               10C6
+TWO                 10C1
+USER_INPUT          100D

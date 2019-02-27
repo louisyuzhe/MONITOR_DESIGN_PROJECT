@@ -1,0 +1,171 @@
+00002000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.15.04
+Created On: 11/25/2018 12:52:32 PM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000                             8  
+00001000= 49 6E 76 61 6C 69 ...      9  INVALID_COM DC.B    'Invalid command',0 ; Imply user command has no match  
+00001010                            10   
+00001010                            11  ***ASCII to HEX***
+00001010                            12  *Convert ASCII in (A4) to HEX in (D1)
+00001010                            13  ASCIItoHEX:
+00001010  48E7 1000                 14          MOVEM.L D3,-(A7)     ; Save register
+00001014  4281                      15          CLR.L   D1           ; Clear register
+00001016  4283                      16          CLR.L   D3
+00001018  161C                      17          MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+0000101A  0C03 0030                 18          CMPI.B  #$30,D3      ; Check if it is ASCII
+0000101E  6D00 0016                 19          BLT     A2H_END      ; Done if there isn't ASCII
+00001022  6100 001A                 20  AtoHEX2 BSR     ALPHAorDIGIT ; Determine alpha/digit
+00001026  D203                      21  AtoHEX3 ADD.B   D3,D1        ; Store converted HEX in D1
+00001028  161C                      22          MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+0000102A  0C03 0030                 23          CMPI.B  #$30,D3      ; Check if it is ASCII
+0000102E  6D00 0006                 24          BLT     A2H_END      ; Done if there isn't ASCII
+00001032  E981                      25          ASL.L   #4,D1        ; Shift left to store more HEX
+00001034  60EC                      26          BRA     AtoHEX2      ; LOOP the conversion
+00001036  538C                      27  A2H_END SUBA.L  #1,A4        ; leave A6 pointing at byte immediately after last number
+00001038  4CDF 0008                 28          MOVEM.L (A7)+,D3     ; restore registers
+0000103C  4E75                      29          RTS
+0000103E                            30          
+0000103E                            31  ALPHAorDIGIT:
+0000103E  0C03 0040                 32          CMPI.B  #$40,D3      ; Determine alpha/digit
+00001042  6D00 0004                 33          BLT     AtoDIGIT     ; Branch to subroutine AtoDIGIT        
+00001046                            34  *Convert ASCII (D3) to Alphabets
+00001046  5F03                      35  AtoALPHA SUBI.B #$7, D3 ; for A to F
+00001048                            36  *Convert ASCII (D3) to digits
+00001048  0403 0030                 37  AtoDIGIT SUBI.B #$30,D3 ; for 0 to 9
+0000104C  4E75                      38           RTS
+0000104E                            39  
+0000104E                            40  **Convert 8 HEX characters in (D1) to ASCII starting at A1 - (8 BYTE)
+0000104E                            41  *For the 16 registers (A, D), SSW, BA, IR
+0000104E                            42  HEX8toASCII: 
+0000104E  48E7 3800                 43            MOVEM.L D2-D4,-(A7) ; Save registers
+00001052  2801                      44            MOVE.L  D1,D4       ; Save D1 to D4
+00001054  7408                      45            MOVE.L  #8,D2       ; Count of 8
+00001056  2604                      46  HEX8toA2  MOVE.L  D4, D3      ; Duplicate value of D4
+00001058  C6BC 0000000F             47            AND.L   #$0F,D3     ; Filter all except last digit
+0000105E  0C03 000A                 48            CMPI.B  #$A,D3      ; Determine Alphabet/Digit
+00001062  6D00 000A                 49            BLT     DIGIT8toA   ; Branch to subroutine DIGITtoA  
+00001066  0603 0037                 50  ALPHA8toA ADDI.B  #$37, D3    ; Convert Alphabets in (D3) to ASCII for A to F
+0000106A  6000 0006                 51            BRA     HEX8toA3    ; Continue to save value to -A1
+0000106E  0603 0030                 52  DIGIT8toA ADDI.B #$30,D3      ; Convert Digit in (D3) to ASCII for 0 to 9    
+00001072  1303                      53  HEX8toA3  MOVE.B  D3,-(A1)    ; Save ASCII to memory
+00001074  E88C                      54            LSR.L   #4,D4       ; Shift right by 1 Hex digit
+00001076  5382                      55            SUBI.L  #1, D2      ; Decerement D2    
+00001078  66DC                      56            BNE     HEX8toA2    ; Loop if there is digit left
+0000107A  4CDF 001C                 57  H82A_END  MOVEM.L (A7)+,D2-D4 ; Restore registers
+0000107E  4E75                      58            RTS                 ; Return from Subroutine 
+00001080                            59  
+00001080                            60  ***Block Search***        
+00001080                            61  *BSCH -  search a literal string from <address1> through <address2> both inclusive
+00001080                            62  *BSCH <Adr1> <Adr2> "literal string"
+00001080                            63  * If Found,  the data and address(es) must be displayed. 
+00001080= 53 74 72 69 6E 67 ...     64  BSCH_FAIL_MSG        DC.B 'String not found',0
+00001091= 53 74 72 69 6E 67 ...     65  BSCH_FOUND_MSG       DC.B 'String found at $00000000'
+000010AA= 00                        66  END_BSCH_FOUND       DC.B 0         ; To be use by ASCIItoHEX subroutine
+000010AB                            67     
+000010AB                            68  BSCH:   
+000010AC  48E7 4040                 69          MOVEM.L D1/A1,-(A7)
+000010B0  43F8 1080                 70          LEA     BSCH_FAIL_MSG ,A1 ; will change if found
+000010B4                            71          
+000010B4  538C                      72          SUBA.L  #1, A4       ; Point to first byte of user input address 
+000010B6  121C                      73          MOVE.B  (A4)+,D1     ; First byte data from user input(A4 pointer)
+000010B8  0C01 0024                 74          CMPI.B  #$24,D1      ; #$24 is '$', test if user input a valid address sign
+000010BC  6600 0048                 75          BNE     ERR_BSCH     ; INVALID Address for BSCH
+000010C0  6100 FF4E                 76          BSR     ASCIItoHEX   ; D1 has 1st address(ASCII)  
+000010C4  2A41                      77          MOVEA.L D1,A5        ; 1st HEX addr in A5  
+000010C6  121C                      78          MOVE.B  (A4)+,D1     ; Store the next byte in D1 to check blank space
+000010C8  0C01 0020                 79          CMPI.B  #$20,D1      ; Check if user input blank space before Next address
+000010CC  6600 0038                 80          BNE     ERR_BSCH     ; INVALID Command format for BMOV       
+000010D0  121C                      81          MOVE.B  (A4)+,D1     ; One byte data from user input(A4 pointer)
+000010D2  0C01 0024                 82          CMPI.B  #$24,D1      ; #$24 is '$', test if user input a valid address sign
+000010D6  6600 002E                 83          BNE     ERR_BSCH     ; INVALID Address for BSCH
+000010DA  6100 FF34                 84          BSR     ASCIItoHEX   ; D1 has 2nd address(ASCII)         
+000010DE  2C41                      85          MOVEA.L D1,A6        ; 2nd HEX addr in A6  
+000010E0  121C                      86          MOVE.B  (A4)+,D1     ; Store the next byte in D1 to check blank space
+000010E2  0C01 0020                 87          CMPI.B  #$20,D1      ; Check if user input blank space before Next address
+000010E6  6600 001E                 88          BNE     ERR_BSCH     ; INVALID Command format for BMOV
+000010EA                            89         
+000010EA  BDCD                      90  LOOPBSCH CMPA.L  A5,A6        ; Compare if A5 is at A6 (A6-A5), 
+000010EC                            91                                ; Compare first, incase user input same addresses
+000010EC  6700 0030                 92          BEQ     MSG_BSCH      ; Quit loop of A5 is at A6
+000010F0  244C                      93          MOVEA.L A4, A2        ; A2 point to user input
+000010F2  B50D                      94          CMP.B   (A5)+,(A2)+   ; Compare one byte of character
+000010F4  66F4                      95          BNE     LOOPBSCH      ; Keep looping if doesnt equal
+000010F6  264D                      96          MOVE.L  A5,A3         ; Save my A5 in A3, if found A5 will point to the String
+000010F8                            97  
+000010F8  0C12 0000                 98  BSCH2   CMPI.B  #0,(A2)       ; Check if string ended
+000010FC  6700 0010                 99          BEQ     BSCH_FOUND    ; If ended, same string found
+00001100  B50B                     100          CMP.B   (A3)+,(A2)+   ; Compare one byte of character
+00001102  66E6                     101          BNE     LOOPBSCH      ; IF not equal, check next literal string
+00001104  60F2                     102          BRA     BSCH2         ; else, compare the next character
+00001106                           103  
+00001106  6100 0022                104  ERR_BSCH   BSR     CMD_INVALID
+0000110A  6000 0018                105             BRA     END_BSCH
+0000110E                           106              
+0000110E  538D                     107  BSCH_FOUND SUBA.L  #1,A5      ; Point to the first character of string found
+00001110  220D                     108             MOVE.L  A5,D1      ; Point to the first character of string found
+00001112  43F8 10AA                109             LEA     END_BSCH_FOUND,A1    ; Point to the end end of found addr msg
+00001116  6100 FF36                110             BSR     HEX8toASCII          ; Change to the address found
+0000111A  43F8 1091                111             LEA     BSCH_FOUND_MSG,A1
+0000111E  103C 000D                112  MSG_BSCH   MOVE.B  #13,D0               ; Print end result message
+00001122  4E4F                     113             TRAP    #15     
+00001124  4CDF 0202                114  END_BSCH   MOVEM.L (A7)+,D1/A1
+00001128  4E75                     115             RTS
+0000112A                           116  
+0000112A                           117     
+0000112A                           118  *Prompt user when command is invalid
+0000112A                           119  CMD_INVALID:
+0000112A  48E7 8040                120         MOVEM.L D0/A1, -(A7)    ; Save REGs
+0000112E  43F8 1000                121         LEA     INVALID_COM, A1 ; Display error message
+00001132  103C 000D                122         MOVE.B  #13,D0
+00001136  4E4F                     123         TRAP    #15
+00001138  4CDF 0201                124         MOVEM.L (A7)+,D0/A1     ; Restore REGs
+0000113C  4E75                     125         RTS
+0000113E                           126    
+0000113E                           127  * Put variables and constants here
+00002000                           128      ORG $2000
+00002000                           129  START:                  ; first instruction of program
+00002000  287C 00002301            130      MOVEA.L #$2301, A4
+00002006  6100 F0A3                131      BSR      BSCH 
+0000200A                           132         
+0000200A                           133      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+A2H_END             1036
+ALPHA8TOA           1066
+ALPHAORDIGIT        103E
+ASCIITOHEX          1010
+ATOALPHA            1046
+ATODIGIT            1048
+ATOHEX2             1022
+ATOHEX3             1026
+BSCH                10AB
+BSCH2               10F8
+BSCH_FAIL_MSG       1080
+BSCH_FOUND          110E
+BSCH_FOUND_MSG      1091
+CMD_INVALID         112A
+DIGIT8TOA           106E
+END_BSCH            1124
+END_BSCH_FOUND      10AA
+ERR_BSCH            1106
+H82A_END            107A
+HEX8TOA2            1056
+HEX8TOA3            1072
+HEX8TOASCII         104E
+INVALID_COM         1000
+LOOPBSCH            10EA
+MSG_BSCH            111E
+START               2000

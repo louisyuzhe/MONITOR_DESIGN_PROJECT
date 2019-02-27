@@ -1,0 +1,307 @@
+00002000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.15.04
+Created On: 11/28/2018 1:37:57 AM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7          ORG $1000
+00001000                             8          
+00001000= 4D 4F 4E 49 54 4F ...      9  PROMPT      DC.B    'MONITOR441> ',0     ; Prompt definition
+0000100D                            10  USER_INPUT  DS.B    80                    ; User input spaces size residing in memory    
+0000105D                            11  END_USER_INPUT
+0000105D                            12  
+00001080                            13          ORG $1080
+00001080= 49 6E 76 61 6C 69 ...     14  INVALID_COM DC.B    'Invalid command',0 ; Imply user command has no match   
+00001090= 49 6E 76 61 6C 69 ...     15  INVALID_ADR DC.B    'Invalid Address',0 ; Imply input address is invalid 
+000010A0= 54 68 65 20 6F 72 ...     16  BusAddrErr  DC.B    'The order: SSW BA IR',0 ; Output follows after Bus & Address Error Exception
+000010B5= 45 78 69 74 65 64 00      17  EXIT_PRMPT  DC.B    'Exited',0          ;Imply termination/exit of monitor program  
+000010BC= 48 45 4C 50 00            18  ONE         DC.B    'HELP',0
+000010C1= 4D 44 53 50 00            19  TWO         DC.B    'MDSP',0
+000010C6= 53 4F 52 54 57 00         20  THREE       DC.B    'SORTW',0
+000010CC                            21  
+000010CC                            22  ***EXCEPTION TABLE***
+000010CC= 0D 42 75 73 20 45 ...     23  BERR_TXT    DC.B    $D,'Bus Error Exception',0
+000010E1= 0D 41 64 64 72 65 ...     24  ADDERR_TXT  DC.B    $D,'Address Error Exception',0   
+000010FA                            25  
+00001200                            26              ORG $1200
+00001200                            27  ***COMMAND TABLE***
+00001200                            28  **Command Names**
+00001200                            29  COM_TABL    ;DC.B    'HELP    '    ; String ‘HELP’ stored in memory (ASCII)
+00001200                            30              ;DC.B    'MDSP    '  ; number specifies length of word 
+00001200                            31             ; DC.B    'SORTW   ' ; used for LOOPUP (not input)
+00001200                            32              ;DC.B    'EXIT    ' ; used for LOOPUP (not input)
+00001200= 47 4F 20 20 20 20 ...     33              DC.B    'GO      '
+00001208                            34              
+00001208                            35  **Command Addresses**         
+00001208                            36  COM_ADDR    ;DC.W    HELP         ;HELP is the address for HELP command subroutine 
+00001208                            37              ;DC.W    MDSP
+00001208                            38              ;DC.W    SORTW
+00001208                            39              ;DC.W    EXIT    
+00001208= 2088                      40              DC.W    GO
+0000120A                            41  
+0000120A                            42            
+0000120A                            43  **Convert 4 HEX characters in (D1) to ASCII starting at A1 - (4 BYTE)
+0000120A                            44  *For the SR
+0000120A                            45  HEX4toASCII: 
+0000120A  48E7 3800                 46            MOVEM.L D2-D4,-(A7) ; Save registers
+0000120E  2801                      47            MOVE.L  D1,D4       ; Save D1 to D4
+00001210  7404                      48            MOVE.L  #4,D2       ; Count of 4
+00001212  2604                      49  HEX4toA2  MOVE.L  D4, D3      ; Duplicate value of D4
+00001214  C6BC 0000000F             50            AND.L   #$0F,D3     ; Filter all except last digit
+0000121A  0C03 000A                 51            CMPI.B  #$A,D3      ; Determine Alphabet/Digit
+0000121E  6D00 000A                 52            BLT     DIGIT4toA   ; Branch to subroutine DIGITtoA  
+00001222  0603 0037                 53  ALPHA4toA ADDI.B  #$37, D3    ; Convert Alphabets in (D3) to ASCII for A to F
+00001226  6000 0006                 54            BRA     HEX4toA3    ; Continue to save value to -A1
+0000122A  0603 0030                 55  DIGIT4toA ADDI.B  #$30,D3     ; Convert Digit in (D3) to ASCII for 0 to 9      
+0000122E  1303                      56  HEX4toA3  MOVE.B  D3,-(A1)    ; Save ASCII to memory
+00001230  E88C                      57            LSR.L   #4,D4       ; Shift right by 1 Hex digit
+00001232  5382                      58            SUBI.L  #1, D2      ; Decrement D2    
+00001234  66DC                      59            BNE     HEX4toA2    ; Loop if there is digit left
+00001236  4CDF 001C                 60  H42A_END  MOVEM.L (A7)+,D2-D4 ; Restore registers
+0000123A  4E75                      61            RTS                 ; Return from Subroutine
+0000123C                            62            
+0000123C                            63  **Convert 8 HEX characters in (D1) to ASCII starting at A1 - (8 BYTE)
+0000123C                            64  *For the 16 registers (A, D), SSW, BA, IR
+0000123C                            65  HEX8toASCII: 
+0000123C  48E7 3800                 66            MOVEM.L D2-D4,-(A7) ; Save registers
+00001240  2801                      67            MOVE.L  D1,D4       ; Save D1 to D4
+00001242  7408                      68            MOVE.L  #8,D2       ; Count of 8
+00001244  2604                      69  HEX8toA2  MOVE.L  D4, D3      ; Duplicate value of D4
+00001246  C6BC 0000000F             70            AND.L   #$0F,D3     ; Filter all except last digit
+0000124C  0C03 000A                 71            CMPI.B  #$A,D3      ; Determine Alphabet/Digit
+00001250  6D00 000A                 72            BLT     DIGIT8toA   ; Branch to subroutine DIGITtoA  
+00001254  0603 0037                 73  ALPHA8toA ADDI.B  #$37, D3    ; Convert Alphabets in (D3) to ASCII for A to F
+00001258  6000 0006                 74            BRA     HEX8toA3    ; Continue to save value to -A1
+0000125C  0603 0030                 75  DIGIT8toA ADDI.B #$30,D3      ; Convert Digit in (D3) to ASCII for 0 to 9    
+00001260  1303                      76  HEX8toA3  MOVE.B  D3,-(A1)    ; Save ASCII to memory
+00001262  E88C                      77            LSR.L   #4,D4       ; Shift right by 1 Hex digit
+00001264  5382                      78            SUBI.L  #1, D2      ; Decerement D2    
+00001266  66DC                      79            BNE     HEX8toA2    ; Loop if there is digit left
+00001268  4CDF 001C                 80  H82A_END  MOVEM.L (A7)+,D2-D4 ; Restore registers
+0000126C  4E75                      81            RTS                 ; Return from Subroutine 
+0000126E                            82  
+0000126E                            83  
+0000126E                            84  ***ASCII to HEX***
+0000126E                            85  *Convert ASCII in (A4) to HEX in (D1)
+0000126E                            86  ASCIItoHEX:
+0000126E  48E7 1000                 87          MOVEM.L D3,-(A7)     ; Save register
+00001272  4281                      88          CLR.L   D1           ; Clear register
+00001274  4283                      89          CLR.L   D3
+00001276  161C                      90          MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+00001278  0C03 0030                 91          CMPI.B  #$30,D3      ; Check if it is ASCII
+0000127C  6D00 0016                 92          BLT     A2H_END      ; Done if there isn't ASCII
+00001280  6100 001A                 93  AtoHEX2 BSR     ALPHAorDIGIT ; Determine alpha/digit
+00001284  D203                      94  AtoHEX3 ADD.B   D3,D1        ; Store converted HEX in D1
+00001286  161C                      95          MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+00001288  0C03 0030                 96          CMPI.B  #$30,D3      ; Check if it is ASCII
+0000128C  6D00 0006                 97          BLT     A2H_END      ; Done if there isn't ASCII
+00001290  E981                      98          ASL.L   #4,D1        ; Shift left to store more HEX
+00001292  60EC                      99          BRA     AtoHEX2      ; LOOP the conversion
+00001294  538C                     100  A2H_END SUBA.L  #1,A4        ; leave A6 pointing at byte immediately after last number
+00001296  4CDF 0008                101          MOVEM.L (A7)+,D3     ; restore registers
+0000129A  4E75                     102          RTS
+0000129C                           103          
+0000129C                           104  ALPHAorDIGIT:
+0000129C  0C03 0040                105          CMPI.B  #$40,D3      ; Determine alpha/digit
+000012A0  6D00 0004                106          BLT     AtoDIGIT     ; Branch to subroutine AtoDIGIT        
+000012A4                           107  *Convert ASCII (D3) to Alphabets
+000012A4  5F03                     108  AtoALPHA SUBI.B #$7, D3 ; for A to F
+000012A6                           109  *Convert ASCII (D3) to digits
+000012A6  0403 0030                110  AtoDIGIT SUBI.B #$30,D3 ; for 0 to 9
+000012AA  4E75                     111           RTS  
+000012AC                           112           
+00002000                           113      ORG $2000
+00002000                           114  START:
+00002000                           115  ;STACK       EQU $2FFC   ; $3000 minus a long word because A7 will be stored first4
+00002000  =00002FFC                116  STACK_INI_REG EQU $2FFC   ; A7 will be stored at $3000 - $4
+00002000  =00002FB8                117  DF_STACK      EQU $2FB8
+00002000  =00002FBC                118  STACK         EQU $2FBC
+00002000                           119  
+00002000  21CF 2FFC                120          MOVE.L  A7,STACK_INI_REG ; So registers stored at STACK will start at $3000
+00002004  4FF8 2FFC                121          LEA     STACK_INI_REG,A7
+00002008  48E7 FFFE                122          MOVEM.L D0-D7/A0-A6,-(A7); Save registers on STACK to enable restore later 
+0000200C                           123  
+0000200C                           124      ***Exception Vector table***
+0000200C  21FC 00002FBC 0000       125          MOVE.L #STACK,    $0 
+00002014  21FC 000020AC 0008       126          MOVE.L #BUS_ERR,  $8 
+0000201C  21FC 000020BC 000C       127          MOVE.L #ADS_ERR,  $C
+00002024                           128          
+00002024  6000 2FDA                129      BRA ERR_BUS
+00002028                           130  ***--------------------------- Command Interpreter ----------------------------***
+00002028                           131  
+00002028  43F8 1000                132  BEGIN     LEA     PROMPT, A1  ; Prompt for user input “MONITOR441>” 
+0000202C  700E                     133            MOVE.L  #14,D0      ; Display Prompt
+0000202E  4E4F                     134            TRAP    #15
+00002030  43F8 100D                135            LEA     USER_INPUT, A1      ; When user input, store to reserve user input space
+00002034  7002                     136            MOVE.L  #2,D0       ; Read input ans return to (A1)
+00002036  4E4F                     137            TRAP    #15
+00002038                           138            
+00002038  45F8 1200                139            LEA     COM_TABL,A2  ; Load Command Table (Start)
+0000203C  47F8 1208                140            LEA     COM_ADDR,A3  ; Load Command Table (End)
+00002040  4282                     141            CLR.L   D2           ; Command Counter
+00002042  2849                     142  LOOKUP    MOVEA.L A1,A4        ; Point to user input       
+00002044  7809                     143            MOVE.L  #9, D4  
+00002046  5304                     144  CMP_Char  SUBI.B  #1, D4
+00002048  B90A                     145            CMPM.B  (A2)+, (A4)+ ; Compare byte (input) vs (CMD table)
+0000204A  67FA                     146            BEQ     CMP_Char     ; If same, keep comparing
+0000204C  0C22 0020                147            CMPI.B  #$20, -(A2)  ; Check if reach blank space 
+00002050  6700 0014                148            BEQ     Run_CMD      ; If 0, means all strings are same, select command
+00002054  528A                     149  NEXTCMD   ADDA.L  #1, A2       ; Loop thru the rest of blank spaces
+00002056  5304                     150            SUBI.B  #1, D4
+00002058  66FA                     151            BNE     NEXTCMD      ; 
+0000205A  5482                     152            ADDQ.L  #2,D2        ; Else, point to next cmd address
+0000205C  B7CA                     153            CMPA.L  A2,A3        ; Check if reach end of COM_TABL
+0000205E  6CE2                     154            BGE     LOOKUP       ; Else, keep looking up command         
+00002060  6100 0012                155            BSR     CMD_INVALID  ; Prompt Invalid command
+00002064  60C2                     156            BRA     BEGIN        ; Start prompt again
+00002066                           157            
+00002066  D7C2                     158  Run_CMD   ADDA.L  D2,A3        ; point to the cmd adr in COM_ADDR 
+00002068  2A7C 00000000            159            MOVEA.L #0,A5        ; clear A5, used for subroutine call
+0000206E  3A53                     160            MOVEA.W (A3),A5      ; move that command's address to register
+00002070  4E95                     161            JSR     (A5)        ; jump to that command's subroutine (below)
+00002072  60B4                     162            BRA     BEGIN        ; Prompt for new command
+00002074                           163  
+00002074                           164  *Prompt user when command is invalid
+00002074                           165  CMD_INVALID:
+00002074  48E7 8040                166         MOVEM.L D0/A1, -(A7)    ; Save REGs
+00002078  43F8 1080                167         LEA     INVALID_COM, A1 ; Display error message
+0000207C  103C 000D                168         MOVE.B  #13,D0
+00002080  4E4F                     169         TRAP    #15
+00002082  4CDF 0201                170         MOVEM.L (A7)+,D0/A1     ; Restore REGs
+00002086  4E75                     171         RTS  
+00002088                           172  ***Execute Program***        
+00002088                           173  *GO -  start execution from a given address
+00002088  48E7 FFFF                174  GO      MOVEM.L D0-D7/A0-A7,-(A7) ; Save all registers
+0000208C  538C                     175          SUBA.L  #1, A4       ; Point to first byte of user inout address        
+0000208E  121C                     176          MOVE.B  (A4)+,D1     ; Cope byte address from user input(A4 pointer)
+00002090  0C01 0024                177          CMPI.B  #$24,D1      ; #$24 is '$', test if user input a valid address sign
+00002094  6600 000E                178          BNE     ERR_GO       ; INVALID Address for GO
+00002098  6100 F1D4                179          BSR     ASCIItoHEX   ; Convert mem addr to be run
+0000209C  2C41                     180          MOVEA.L D1,A6        ; Store user input addr in A6
+0000209E  4E96                     181          JSR     (A6)         ; Start execution from (A6)
+000020A0  6000 0004                182          BRA     END_GO       ; End GO subroutine
+000020A4  61CE                     183  ERR_GO  BSR     CMD_INVALID  ; Display invalid command error msg       
+000020A6  4CDF FFFF                184  END_GO  MOVEM.L (A7)+,D0-D7/A0-A7 ; Restore Resgisters
+000020AA  4E75                     185          RTS
+000020AC                           186          
+000020AC                           187      
+000020AC                           188  ***--------------------------- Exception Handlers  -----------------------------***
+000020AC                           189  BUS_ERR:
+000020AC  48E7 8040                190          MOVEM.L A1/D0,-(A7)     ; Registers for Error Messages
+000020B0  48E7 4020                191          MOVEM.L D1/A2,-(A7)     ; Registers for SSW, BA, IR subroutine
+000020B4  43F8 10CC                192          LEA     BERR_TXT, A1    ; Bus Error Msg
+000020B8  6000 0012                193          BRA     BUS_ADS_EXCPTN
+000020BC                           194  
+000020BC                           195  ADS_ERR:
+000020BC  48E7 8040                196          MOVEM.L A1/D0,-(A7)     ; Registers for Error Messages
+000020C0  48E7 4020                197          MOVEM.L D1/A2,-(A7)     ; Registers for SSW, BA, IR subroutine
+000020C4  43F8 10E1                198          LEA     ADDERR_TXT, A1  ; Address Error Msg
+000020C8  6000 0002                199          BRA     BUS_ADS_EXCPTN      
+000020CC                           200   
+000020CC                           201  **--For bus error and address error routines--**  
+000020CC                           202  *Read the content of A7, display the content of the Supervisor Status Word, 
+000020CC                           203  *Bus Address and Instruction register all in a single line with spaces between them.   
+000020CC                           204  BUS_ADS_EXCPTN:
+000020CC  700D                     205          MOVE.L  #13,D0      ; Display error exceptionn message
+000020CE  4E4F                     206          TRAP    #15
+000020D0  45F8 2FB8                207          LEA     DF_STACK,A2 ; A2 as Stack Pointer
+000020D4  548A                     208          ADDA.L  #2,A2       ; A now point to the end of IR
+000020D6                           209          
+000020D6  43F8 105D                210          LEA     END_USER_INPUT,A1 ; Prepare blank space to write SSW, BA, IR
+000020DA                           211          ;SUBA.L  #60,A1      ; Empty spaces for the HEXtoASCII result
+000020DA  133C 0000                212          MOVE.B  #0,-(A1)    ; Null terminator (end of SSW, BA, IR)
+000020DE  4281                     213          CLR.L   D1          ; D1 carries byte to be converted
+000020E0  3222                     214          MOVE.W  -(A2),D1    ; SSW to be converted to ASCII
+000020E2  6100 F158                215          BSR     HEX8toASCII ; SSW stored in -8(A1)
+000020E6  5889                     216          ADDQ.L  #4,A1       ; Convert SSW LONG > WORD
+000020E8  133C 0020                217          MOVE.B  #$20,-(A1)  ; A single line with spaces between them
+000020EC  2222                     218          MOVE.L  -(A2),D1    ; BA to be converted to ASCII
+000020EE  6100 F14C                219          BSR     HEX8toASCII ; BA stored in -8(A1)
+000020F2  133C 0020                220          MOVE.B  #$20,-(A1)  ; A single line with spaces between them.
+000020F6  4281                     221          CLR.L   D1          ; 
+000020F8  3222                     222          MOVE.W  -(A2),D1    ; IR to be converted to ASCII
+000020FA  6100 F140                223          BSR     HEX8toASCII ; IR stored in -8(A1)
+000020FE  5889                     224          ADDQ.L  #4,A1       ; IR is WORD size
+00002100  4CDF 0402                225          MOVEM.L (A7)+,D1/A2 ; Restore registers for pointer and conversion
+00002104  6000 0002                226          BRA EXCEPTION       ; To display SSW, BA, IR
+00002108                           227  
+00002108                           228  
+00002108                           229  *Display error message and display the value of the registers    
+00002108                           230  EXCEPTION: 
+00002108  103C 000D                231          MOVE.B  #13,D0      ; Print our error exceptionn msg
+0000210C  4E4F                     232          TRAP    #15         
+0000210E                           233          ;BSR     DF          ; Call subroutine DF
+0000210E  4CDF 0201                234          MOVEM.L (A7)+,D0/A1 ; Restore REGs
+00002112  4FF8 2FBC                235          LEA     STACK,A7    ; A7 point to Stack
+00002116  5888                     236          ADDA.L  #4,A0       ; User input store on stack right after A7
+00002118  6000 FF0E                237          BRA     BEGIN       ; Restart program
+0000211C                           238  
+00005000                           239      ORG $5000
+00005000  2038 5001                240  ERR_BUS MOVE.L  $5001,D0
+00005004                           241  
+00005004                           242  END:        
+00005004                           243      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+A2H_END             1294
+ADDERR_TXT          10E1
+ADS_ERR             20BC
+ALPHA4TOA           1222
+ALPHA8TOA           1254
+ALPHAORDIGIT        129C
+ASCIITOHEX          126E
+ATOALPHA            12A4
+ATODIGIT            12A6
+ATOHEX2             1280
+ATOHEX3             1284
+BEGIN               2028
+BERR_TXT            10CC
+BUSADDRERR          10A0
+BUS_ADS_EXCPTN      20CC
+BUS_ERR             20AC
+CMD_INVALID         2074
+CMP_CHAR            2046
+COM_ADDR            1208
+COM_TABL            1200
+DF_STACK            2FB8
+DIGIT4TOA           122A
+DIGIT8TOA           125C
+END                 5004
+END_GO              20A6
+END_USER_INPUT      105D
+ERR_BUS             5000
+ERR_GO              20A4
+EXCEPTION           2108
+EXIT_PRMPT          10B5
+GO                  2088
+H42A_END            1236
+H82A_END            1268
+HEX4TOA2            1212
+HEX4TOA3            122E
+HEX4TOASCII         120A
+HEX8TOA2            1244
+HEX8TOA3            1260
+HEX8TOASCII         123C
+INVALID_ADR         1090
+INVALID_COM         1080
+LOOKUP              2042
+NEXTCMD             2054
+ONE                 10BC
+PROMPT              1000
+RUN_CMD             2066
+STACK               2FBC
+STACK_INI_REG       2FFC
+START               2000
+THREE               10C6
+TWO                 10C1
+USER_INPUT          100D

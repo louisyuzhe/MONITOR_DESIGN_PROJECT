@@ -1,0 +1,206 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.15.04
+Created On: 11/27/2018 4:25:41 PM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00000000                             7  * Put program code here
+00001400                             8   ORG    $1400
+00001400= 50 43 3D 30 30 30 ...      9  DF_MSG      DC.B    'PC=00000000 SR=0000     US=00000000 SS=00000000',$A,$D
+00001431= 44 30 3D 30 30 30 ...     10              DC.B    'D0=00000000 D1=00000000 D2=00000000 D3=00000000 ',$A,$D
+00001463= 44 34 3D 30 30 30 ...     11              DC.B    'D4=00000000 D5=00000000 D6=00000000 D7=00000000 ',$A,$D
+00001495= 41 30 3D 30 30 30 ...     12              DC.B    'A0=00000000 A1=00000000 A2=00000000 A3=00000000 ',$A,$D
+000014C7= 41 34 3D 30 30 30 ...     13              DC.B    'A4=00000000 A5=00000000 A6=00000000 A7=00000000',$0
+000014F7                            14  DF_MSG_END 
+00000900                            15      ORG    $900
+00000900  =00002FFC                 16  STACK EQU $2FFC   ; $3000 minus a long word because A7 will be stored first
+00000900  =00002FC0                 17  DF_STACK EQU $2FC0
+00000900                            18  
+00002200                            19         ORG    $2200
+00002200                            20  ***HEX to ASCII***
+00002200                            21  *Convert HEX in (D1) to ASCII starting at A1 - (# of digits * BYTE)
+00002200                            22  HEXtoASCII: 
+00002200  48E7 1800                 23            MOVEM.L D3/D4,-(A7) ; Save registers
+00002204  2801                      24            MOVE.L  D1, D4       ; Save D1 to D4
+00002206  2604                      25  HEXtoA2   MOVE.L  D4, D3      ; Duplicate value of D4
+00002208  C6BC 0000000F             26            AND.L   #$0F,D3     ; Filter all except last digit
+0000220E  0C03 000A                 27            CMPI.B  #$A,D3      ; Determine Alphabet/Digit
+00002212  6D00 000A                 28            BLT     DIGITtoA    ; Branch to subroutine DIGITtoA  
+00002216  0603 0037                 29  ALPHAtoA  ADDI.B  #$37, D3    ; Convert Alphabets in (D3) to ASCII for A to F
+0000221A  6000 0006                 30            BRA     HEXtoA3     ; Continue to save value to -A1
+0000221E  0603 0030                 31  DIGITtoA  ADDI.B  #$30,D3      ; Convert Digit in (D3) to ASCII for 0 to 9                  
+00002222  1303                      32  HEXtoA3   MOVE.B  D3,-(A1)    ; Save ASCII to memory
+00002224  E88C                      33            LSR.L   #4,D4       ; Shift right by 1 Hex digit
+00002226  4A84                      34            TST.L   D4          ; Test value in D4
+00002228  66DC                      35            BNE     HEXtoA2     ; Loop if there is digit left
+0000222A  4CDF 0018                 36  H2A_END   MOVEM.L (A7)+,D3/D4 ; Restore registers
+0000222E  4E75                      37            RTS                 ; Return from Subroutine
+00002230                            38            
+00002230                            39  **Convert 4 bytes in (D1) to ASCII starting at A1 - (4 BYTE)
+00002230                            40  *For the SR
+00002230                            41  HEX4toASCII: 
+00002230  48E7 3800                 42            MOVEM.L D2-D4,-(A7) ; Save registers
+00002234  2801                      43            MOVE.L  D1,D4       ; Save D1 to D4
+00002236  7404                      44            MOVE.L  #4,D2       ; Count of 4
+00002238  2604                      45  HEX4toA2  MOVE.L  D4, D3      ; Duplicate value of D4
+0000223A  C6BC 0000000F             46            AND.L   #$0F,D3     ; Filter all except last digit
+00002240  0C03 000A                 47            CMPI.B  #$A,D3      ; Determine Alphabet/Digit
+00002244  6D00 000A                 48            BLT     DIGIT4toA    ; Branch to subroutine DIGITtoA  
+00002248  0603 0037                 49  ALPHA4toA ADDI.B  #$37, D3    ; Convert Alphabets in (D3) to ASCII for A to F
+0000224C  6000 0006                 50            BRA     HEX4toA3    ; Continue to save value to -A1
+00002250  0603 0030                 51  DIGIT4toA ADDI.B  #$30,D3      ; Convert Digit in (D3) to ASCII for 0 to 9      
+00002254  1303                      52  HEX4toA3  MOVE.B  D3,-(A1)    ; Save ASCII to memory
+00002256  E88C                      53            LSR.L   #4,D4       ; Shift right by 1 Hex digit
+00002258  5382                      54            SUBI.L  #1, D2      ; Decrement D2    
+0000225A  66DC                      55            BNE     HEX4toA2    ; Loop if there is digit left
+0000225C  4CDF 001C                 56  H42A_END  MOVEM.L (A7)+,D2-D4 ; Restore registers
+00002260  4E75                      57            RTS                 ; Return from Subroutine
+00002262                            58            
+00002262                            59  **Convert 8 bytes in (D1) to ASCII starting at A1 - (8 BYTE)
+00002262                            60  *For the 16 registers (A&D)
+00002262                            61  HEX8toASCII: 
+00002262  48E7 3800                 62            MOVEM.L D2-D4,-(A7) ; Save registers
+00002266  2801                      63            MOVE.L  D1,D4       ; Save D1 to D4
+00002268  7408                      64            MOVE.L  #8,D2       ; Count of 8
+0000226A  2604                      65  HEX8toA2  MOVE.L  D4, D3      ; Duplicate value of D4
+0000226C  C6BC 0000000F             66            AND.L   #$0F,D3     ; Filter all except last digit
+00002272  0C03 000A                 67            CMPI.B  #$A,D3      ; Determine Alphabet/Digit
+00002276  6D00 000A                 68            BLT     DIGIT8toA    ; Branch to subroutine DIGITtoA  
+0000227A  0603 0037                 69  ALPHA8toA ADDI.B  #$37, D3    ; Convert Alphabets in (D3) to ASCII for A to F
+0000227E  6000 0006                 70            BRA     HEX8toA3    ; Continue to save value to -A1
+00002282  0603 0030                 71  DIGIT8toA ADDI.B #$30,D3      ; Convert Digit in (D3) to ASCII for 0 to 9    
+00002286  1303                      72  HEX8toA3  MOVE.B  D3,-(A1)    ; Save ASCII to memory
+00002288  E88C                      73            LSR.L   #4,D4       ; Shift right by 1 Hex digit
+0000228A  5382                      74            SUBI.L  #1, D2      ; Decerement D2    
+0000228C  66DC                      75            BNE     HEX8toA2    ; Loop if there is digit left
+0000228E  4CDF 001C                 76  H82A_END  MOVEM.L (A7)+,D2-D4 ; Restore registers
+00002292  4E75                      77            RTS                 ; Return from Subroutine 
+00002294                            78         
+00002294                            79  
+00002294                            80  
+00002294                            81  
+00002294                            82  
+00002294                            83  
+00002294                            84  
+00002294                            85  
+00002294                            86  
+00002294                            87  
+00002294                            88  
+00002294                            89  
+00002294                            90  
+00002294                            91  
+00002294                            92  
+00002294                            93  
+00002294                            94  
+00002294                            95  
+00002294                            96  
+00002294                            97  
+00002294                            98  
+00002294                            99  
+00002294                           100  
+00002294                           101  
+00002300                           102               ORG $2300
+00002300                           103  * DF -- displays formatted registers
+00002300  4FF8 2FC0                104  DF      LEA     DF_STACK,A7
+00002304  48E7 FFFE                105          MOVEM.L D0-D7/A0-A6,-(A7) ; Save current REGs on stack to Display
+00002308  598F                     106          SUBQ.L  #4, A7
+0000230A  4E6E                     107          MOVE    USP,A6      ;for use with DF command
+0000230C  2F0E                     108          MOVE.L  A6,-(A7)    ;store USP to STACK
+0000230E  40E7                     109          MOVE    SR,-(A7)    ;save Status register for use with DF
+00002310  598F                     110          SUBQ.L  #4, A7
+00002312                           111          ;MOVE    SS,-(A7)   ;SS = A7   
+00002312                           112  
+00002312  48E7 B0E0                113          MOVEM.L D0/D2-D3/A0-A2,-(A7) ; Save REGs
+00002316  45F8 2FFC                114          LEA     STACK, A2   ;A2 pointing at STACK
+0000231A  588A                     115          ADDQ.L  #4, A2      ; Go to the end of STACK for A7 value
+0000231C  7410                     116          MOVE.L  #16, D2     ; D2 as counter for 16 registers
+0000231E  7600                     117          MOVE.L  #0, D3      ; D3 as counter for 4 lines
+00002320  43F8 14F7                118          LEA     DF_MSG_END,A1   ;A1 as the end of string
+00002324  5389                     119          SUBQ.L  #1, A1      ; Skip Empty space, $0 
+00002326  B6BC 00000004            120  DF2     CMP.L   #4, D3      ; Calc(D3-4)
+0000232C  6600 0006                121          BNE     DF3         ; If not 4 times, go to DF3
+00002330  5589                     122          SUBQ.L  #2, A1      ; Skip Empty space, $A,$D
+00002332  4283                     123          CLR.L   D3          ; Reset D3
+00002334  2222                     124  DF3     MOVE.L  -(A2), D1   ; Save register value in D1 to be converted 
+00002336  6100 FF2A                125          BSR     HEX8toASCII ; Branch to convert Hex->ASCII
+0000233A  5283                     126          ADDQ.L  #1, D3      ; Increment D3, 4 REG/Line
+0000233C  5989                     127          SUBQ.L  #4, A1      ; Skip blank and 'REG[#]='
+0000233E  5302                     128          SUBQ.B  #1, D2      ; Increment D2, total = 16REGs
+00002340  66E4                     129          BNE     DF2         ; If not 12 times yet, go back to DF2
+00002342                           130          
+00002342                           131          *SS*
+00002342  5389                     132          SUBQ.L  #1, A1      ; Skip '$A$D and D0='
+00002344  2222                     133          MOVE.L  -(A2), D1   ; Save register value in D1 to be converted 
+00002346  6100 FF1A                134          BSR     HEX8toASCII ; Branch to convert Hex->ASCII
+0000234A                           135          
+0000234A                           136          *US*
+0000234A  5989                     137          SUBQ.L  #4, A1      ; Skip blank and 'SS='
+0000234C  2222                     138          MOVE.L  -(A2), D1   ; Save register value in D1 to be converted 
+0000234E  6100 FF12                139          BSR     HEX8toASCII ; Branch to convert Hex->ASCII
+00002352                           140          
+00002352                           141          *SR*
+00002352  5189                     142          SUBQ.L  #8, A1      ; Skip blanks and 'US='
+00002354  3222                     143          MOVE.W  -(A2), D1   ; Save register value in D1 to be converted 
+00002356  6100 FED8                144          BSR     HEX4toASCII ; Branch to convert Hex->ASCII
+0000235A                           145          
+0000235A                           146          *PC*
+0000235A  5989                     147          SUBQ.L  #4, A1      ; Skip blank and 'SR='
+0000235C  2222                     148          MOVE.L  -(A2), D1   ; Save register value in D1 to be converted 
+0000235E  6100 FF02                149          BSR     HEX8toASCII ; Branch to convert Hex->ASCII
+00002362                           150          
+00002362  43F8 1400                151          LEA     DF_MSG,A1   ; Go to beginning of string
+00002366  103C 000D                152          MOVE.B  #13,D0
+0000236A  4E4F                     153          TRAP    #15         ; Display all Registers
+0000236C  4CDF 070D                154          MOVEM.L (A7)+,D0/D2-D3/A0-A2 ;Restore REGs
+00002370  4E75                     155          RTS
+00002372                           156          
+00002372                           157  
+00002372                           158     
+00001000                           159   ORG    $1000
+00001000                           160  START:                  ; first instruction of program
+00001000  21CF 2FFC                161          MOVE.L  A7,STACK    ; store original location of stack beforehand
+00001004                           162          ;MOVE.L  A7, $2FBC
+00001004                           163          ;LEA     $2FB6,A7
+00001004                           164          ;PEA     *-$D         ;save PC on Stack for DF
+00001004                           165      
+00001004                           166          
+00001004  4EB8 2300                167          JSR DF
+00001008                           168      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+ALPHA4TOA           2248
+ALPHA8TOA           227A
+ALPHATOA            2216
+DF                  2300
+DF2                 2326
+DF3                 2334
+DF_MSG              1400
+DF_MSG_END          14F7
+DF_STACK            2FC0
+DIGIT4TOA           2250
+DIGIT8TOA           2282
+DIGITTOA            221E
+H2A_END             222A
+H42A_END            225C
+H82A_END            228E
+HEX4TOA2            2238
+HEX4TOA3            2254
+HEX4TOASCII         2230
+HEX8TOA2            226A
+HEX8TOA3            2286
+HEX8TOASCII         2262
+HEXTOA2             2206
+HEXTOA3             2222
+HEXTOASCII          2200
+STACK               2FFC
+START               1000

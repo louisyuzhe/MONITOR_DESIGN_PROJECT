@@ -1,0 +1,140 @@
+00001010 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.15.04
+Created On: 11/27/2018 3:27:30 AM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001100                             7   ORG $1100
+00001100                             8  ***ASCII to HEX***
+00001100                             9  *Convert a byte of ASCII in (A4) to HEX in (D1)
+00001100                            10  AtoH_BYTE:
+00001100  48E7 1000                 11            MOVEM.L D3,-(A7)     ; Save register
+00001104  4281                      12            CLR.L   D1           ; Clear register
+00001106  4283                      13            CLR.L   D3
+00001108  161C                      14            MOVE.B  (A4)+,D3     ; Save a byte from A4 to D3
+0000110A  0C03 0030                 15            CMPI.B  #$30,D3      ; Check if it is ASCII
+0000110E  6D00 0008                 16            BLT     A2H_END_B    ; Done if there isn't ASCII
+00001112  6100 000A                 17            BSR     ALPorDIG     ; Determine alpha/digit
+00001116  D203                      18            ADD.B   D3,D1        ; Store converted HEX in D1
+00001118  4CDF 0008                 19  A2H_END_B MOVEM.L (A7)+,D3     ; restore registers
+0000111C  4E75                      20            RTS
+0000111E                            21  
+0000111E                            22  ALPorDIG:
+0000111E  0C03 0040                 23           CMPI.B  #$40,D3      ; Determine alpha/digit
+00001122  6D00 0008                 24           BLT     AtoDIG     ; Branch to subroutine AtoDIGIT        
+00001126                            25  *Convert ASCII (D3) to DEC (Alphabets) 
+00001126  0403 0031                 26  AtoALP SUBI.B #$31, D3 ; for A to F
+0000112A  4E75                      27           RTS
+0000112C                            28  *Convert ASCII (D3) to DEC (digits)
+0000112C  0403 0030                 29  AtoDIG SUBI.B #$30,D3 ; for 0 to 9
+00001130  4E75                      30           RTS
+00001132                            31  
+00001132                            32      
+00001132                            33  ***Addition***
+00001132                            34  *H2D - Add two hex number and display
+00001132                            35  *H2D $7FF, Hex value is limited to max of $7FFF
+00001132= 54 68 65 20 64 65 ...     36  H2D_MSG DC.B    'The decimal = ',$0
+00001141= 00                        37  END_H2D_MSG DC.B '',0   
+00001142                            38      
+00002000                            39      ORG $2000
+00002000                            40  H2D:
+00002000  48E7 AC40                 41      MOVEM.L  D0/D2/D4-D5/A1,-(A7)
+00002004  538C                      42      SUBA.L  #1, A4       ; Point to first byte of user input address 
+00002006  4281                      43      CLR.L   D1           ; To be used for stroing data
+00002008  4283                      44      CLR.L   D3
+0000200A                            45      
+0000200A                            46      *Store 1st hex value in D4
+0000200A  121C                      47      MOVE.B  (A4)+,D1    ; First byte data from user input(A4 pointer)
+0000200C  0C01 0024                 48      CMPI.B  #$24,D1     ; #$24 is '$', test if user input a valid hex number
+00002010  6600 004A                 49      BNE     ERR_H2D     ; INVALID value for H2D
+00002014  6100 F0EA                 50      BSR     AtoH_BYTE   ; D1 has the hex value
+00002018  2801                      51      MOVE.L  D1, D4      ; D4 now has the hex value
+0000201A                            52  
+0000201A                            53      *Test if there's a second character
+0000201A  1214                      54      MOVE.B  (A4),D1    ; First byte data from user input(A4 pointer)
+0000201C  0C01 0000                 55      CMPI.B  #$00,D1     ; #$24 is '$', test if user input a valid hex number
+00002020  6700 0016                 56      BEQ     ONE_CHAR    ; INVALID value for h2D
+00002024                            57  
+00002024                            58      *If there's 2 character
+00002024                            59      ;MULU    #16, D4     ; First char * 16 
+00002024                            60      
+00002024                            61     ; SUBA.L  #1,A4       ; point A4 to the second hex character
+00002024  6100 F0DA                 62      BSR     AtoH_BYTE   ; D1 has the 2nd hex value
+00002028  2A01                      63      MOVE.L  D1, D5      ; D5 now has the 2nd hex value
+0000202A                            64  
+0000202A                            65      
+0000202A  5384                      66  H2D_LOOP    SUBI.L  #1,D4   ; First character * 16 + 2nd char
+0000202C  6D00 000C                 67              BLT     PRINT
+00002030  0685 00000010             68              ADDI.L   #16,D5
+00002036  60F2                      69              BRA     H2D_LOOP
+00002038                            70      
+00002038  2A04                      71  ONE_CHAR  MOVE.L D4, D5    
+0000203A                            72      
+0000203A  43F8 1132                 73  PRINT   LEA     H2D_MSG,A1   ; Go to beginning of string
+0000203E  103C 000E                 74          MOVE.B  #14,D0
+00002042  4E4F                      75          TRAP    #15         ; Display sum message
+00002044  740A                      76          MOVE.L  #10, D2     ; Set output as base 16
+00002046  2205                      77          MOVE.L D5,D1
+00002048  103C 000F                 78          MOVE.B  #15, D0 
+0000204C  4E4F                      79          TRAP    #15         ; Display sum message
+0000204E  43F8 1141                 80          LEA     END_H2D_MSG,A1  ; Print CR+LF
+00002052  103C 000D                 81          MOVE.B  #13,D0
+00002056  4E4F                      82          TRAP    #15   
+00002058  6000 0008                 83          BRA     END_H2D
+0000205C                            84      
+0000205C  4EB9 00002068             85  ERR_H2D     JSR    CMD_INVALID  ; Go to invalid command subroutine    
+00002062                            86  END_H2D:    
+00002062  4CDF 0235                 87      MOVEM.L (A7)+,D0/D2/D4-D5/A1 ;Restore REGs
+00002066  4E75                      88      RTS
+00002068                            89  
+00002068                            90  *Prompt user when command is invalid
+00002068                            91  CMD_INVALID:
+00002068  48E7 8040                 92         MOVEM.L D0/A1, -(A7)    ; Save REGs
+0000206C  43F9 00001000             93         LEA     INVALID_COM, A1 ; Display error message
+00002072  103C 000D                 94         MOVE.B  #13,D0
+00002076  4E4F                      95         TRAP    #15
+00002078  4CDF 0201                 96         MOVEM.L (A7)+,D0/A1     ; Restore REGs
+0000207C  4E75                      97         RTS
+0000207E                            98         
+00002300                            99      ORG    $2300
+00002300                           100  ;TEST1 DC.B    '$2400 $2408 ;A',0 ; Store testcase in input space
+00002300                           101  ;TEST1 DC.B    '$2400 $2408 ;D',0 ; Store testcase in input space
+00002300= 24 32 41 00              102  TEST1 DC.B    '$2A',0 ; Store testcase in input space
+00002304                           103      
+00001000                           104      ORG    $1000
+00001000= 49 6E 76 61 6C 69 ...    105  INVALID_COM DC.B    'Invalid command',0 ; Imply user command has no match 
+00001010                           106  
+00001010                           107  START:                  ; first instruction of program
+00001010                           108  
+00001010  287C 00002301            109      MOVEA.L #$2301, A4
+00001016  6000 0FE8                110      BRA     H2D 
+0000101A                           111         END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+A2H_END_B           1118
+ALPORDIG            111E
+ATOALP              1126
+ATODIG              112C
+ATOH_BYTE           1100
+CMD_INVALID         2068
+END_H2D             2062
+END_H2D_MSG         1141
+ERR_H2D             205C
+H2D                 2000
+H2D_LOOP            202A
+H2D_MSG             1132
+INVALID_COM         1000
+ONE_CHAR            2038
+PRINT               203A
+START               1010
+TEST1               2300
